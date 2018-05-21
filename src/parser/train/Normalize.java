@@ -1,15 +1,10 @@
 package parser.train;
 
-import parser.grammar.Grammar;
-import parser.grammar.Rule;
 import parser.tree.Node;
 import parser.tree.Tree;
-import parser.utils.CountMap;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 /**
  * Created by aymann on 18/05/2018.
@@ -17,51 +12,35 @@ import java.util.Set;
 public class Normalize {
 
     /**
-     * recieve original tree as input and preformes:
-     * step 1: Short rules (eg. A->a)
-     * step2: normalized Long rules (eg. A->BCD)
+     * receive an original tree as input and preformes:
+     * normalized Long rules (eg. A->BCD) to binary rules
+     * returned tree is a Binary tree
+     * TODO- add input parameter indicating the number of sisters encoded in the memory of added nodes (currently all sisters are encoded)
      *
      * @param tree
      * @return
      */
-    public static Tree normalize(Tree tree) {
-        //step 2-normalized non binary Nodes
-        Node binaryTreeRoot=binarizeTreeNodes(tree.getRoot());
+    public static Tree normalize(Tree tree, int h) {
+        //normalized non binary Nodes in the tree
+        Node binaryTreeRoot = binarizeTreeNodes(tree.getRoot(), h);
         return new Tree(binaryTreeRoot);
-
-    }
-
-    public static Node binarizeTreeNodes2(Node root) {
-        if (root.isLeaf()) {
-            return root.clone();
-        }
-
-        Node newRoot = binarizeNode(root);
-        List<Node> binaryDaughters = new ArrayList<Node>(2);
-        for (Node child : newRoot.getDaughters()) {
-            binaryDaughters.add(binarizeTreeNodes(child));
-        }
-
-        newRoot.removeAllDaughters();
-        newRoot.addAllDaughters(binaryDaughters);
-
-        return newRoot;
     }
 
 
-    public static Node binarizeTreeNodes(Node root) {
+    public static Node binarizeTreeNodes(Node root, int h) {
         if (root.isLeaf()) {
             return root.clone();
         }
 
         List<Node> binaryDaughters = new ArrayList<Node>();
         for (Node child : root.getDaughters()) {
-            binaryDaughters.add(binarizeTreeNodes(child));
+            binaryDaughters.add(binarizeTreeNodes(child, h));
         }
         Node preBinzrizationRoot = root.clone();
+
         preBinzrizationRoot.removeAllDaughters();
         preBinzrizationRoot.addAllDaughters(binaryDaughters);
-        Node newRoot = binarizeNode(preBinzrizationRoot);
+        Node newRoot = binarizeNode(preBinzrizationRoot, h);
         return newRoot;
     }
 
@@ -71,12 +50,13 @@ public class Normalize {
      * @param treeRoot
      * @return
      */
-    public static Node binarizeNode(Node treeRoot) {
+    public static Node binarizeNode(Node treeRoot, int h) {
         Node newRootNode = treeRoot.clone();
+        String origeRootLabel=treeRoot.getLabel();
 
         if (newRootNode.getDaughters().size() > 2) {
             int numOfDaughters = newRootNode.getDaughters().size();
-            List<Node> origRootDaughters = newRootNode.getDaughters();
+            List<Node> origRootDaughters = treeRoot.getDaughters();
             Node curentParent = newRootNode;
 
             for (int counter = 0; counter < numOfDaughters - 1; counter++) {
@@ -85,7 +65,7 @@ public class Normalize {
 
                 //prepare label of new right side dummy node
                 if (counter < numOfDaughters - 2) {
-                    String label = getNewLabel(origRootDaughters, counter, numOfDaughters);
+                    String label = getNewLabel(origeRootLabel,origRootDaughters, counter, numOfDaughters,h);
                     rightSideNode = new Node(label);
                 } else {//counter==n-2
                     rightSideNode = origRootDaughters.get(counter + 1).clone();
@@ -95,6 +75,7 @@ public class Normalize {
                 leftSideNode.setParent(curentParent);
                 rightSideNode.setParent(curentParent);
 
+                curentParent.removeAllDaughters();
                 curentParent.addDaughter(leftSideNode);
                 curentParent.addDaughter(rightSideNode);
 
@@ -105,17 +86,30 @@ public class Normalize {
     }
 
 
-    private static String getNewLabel(List<Node> nodes, int cuurentIndexCounter, int numOfDaughters) {
+    private static String getNewLabel(String origeRootLabel,List<Node> nodes, int cuurentIndexCounter, int numOfDaughters, int h) {
         StringBuffer sb = new StringBuffer();
-        for (int i = 0; i < numOfDaughters; i++) {
-            sb.append(nodes.get(i).getLabel());
-            if (i == cuurentIndexCounter) {
-                sb.append("@");
-            } else {
-                if (i < numOfDaughters - 1) {
+
+        if(h<0){
+            for (int i = 0; i < numOfDaughters; i++) {
+                sb.append(nodes.get(i).getLabel());
+                if (i == cuurentIndexCounter) {
+                    sb.append("@");
+                } else {
+                    if (i < numOfDaughters - 1) {
+                        sb.append("-");
+                    }
+                }
+            }
+        }else{
+            sb.append(origeRootLabel).append("@/");
+            for(int i=Math.max(0,cuurentIndexCounter-h+1); i<numOfDaughters && i<cuurentIndexCounter+1 ;i++){
+                sb.append(nodes.get(i).getLabel());
+                if(i<cuurentIndexCounter && i < numOfDaughters - 1){
                     sb.append("-");
                 }
             }
+            sb.append("/");
+
         }
         return sb.toString();
     }
@@ -155,4 +149,19 @@ public class Normalize {
         return;
     }
 
+//    public static Node binarizeTreeNodes2(Node root,int h) {
+//        if (root.isLeaf()) {
+//            return root.clone();
+//        }
+//
+//        Node newRoot = binarizeNode(root,h);
+//        List<Node> binaryDaughters = new ArrayList<Node>(2);
+//        for (Node child : newRoot.getDaughters()) {
+//            binaryDaughters.add(binarizeTreeNodes(child,h));
+//        }
+//        newRoot.removeAllDaughters();
+//        newRoot.addAllDaughters(binaryDaughters);
+//
+//        return newRoot;
+//    }
 }

@@ -26,7 +26,7 @@ public Terminal(String sIdentifier, String sForm, int iLeft, int iRight) {
 		return lst;
 	}
 	
-	public Object clone()
+	public Terminal clone()
 	{
 		Terminal t = new Terminal(getIdentifier());
 		return t;

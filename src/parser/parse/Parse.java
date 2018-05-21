@@ -26,9 +26,9 @@ public class Parse {
 	 * @author Reut Tsarfaty
 	 * @date 27 April 2013
 	 * 
-	 * @param train-set 
-	 * @param test-set 
-	 * @param exp-name
+	 * param train-set
+	 * param test-set
+	 * param exp-name
 	 * 
 	 */
 	
@@ -49,30 +49,40 @@ public class Parse {
 		// 1. read input
 		Treebank myGoldTreebank = TreebankReader.getInstance().read(true, args[0]);
 		Treebank myTrainTreebank = TreebankReader.getInstance().read(true, args[1]);
-		
+
+		int h=-1;
+		if (args.length > 3){
+			h=Integer.parseInt(args[3]);
+		}
+
 		// 2.1 transform trees- myTrainTreebank
 		Treebank myBinaryTrainTreebank=new Treebank();
 		for (int i = 0; i < myTrainTreebank.size(); i++) {
 			Tree myTree = myTrainTreebank.getAnalyses().get(i);//get tree in index i from treebank
-			Tree myBinaryTree = Normalize.normalize(myTree);
+			Tree myBinaryTree = Normalize.normalize(myTree,h);
 			myBinaryTrainTreebank.add(myBinaryTree);
 		}
 
 		// 2.2 transform trees- myGoldTreebank
-		//TODO
+		Treebank myBinaryGoldTreebank=new Treebank();
+		for (int i = 0; i < myGoldTreebank.size(); i++) {
+			Tree myTree = myGoldTreebank.getAnalyses().get(i);//get tree in index i from treebank
+			Tree myBinaryTree = Normalize.normalize(myTree,h);
+			myBinaryGoldTreebank.add(myBinaryTree);
+		}
 
 		// 3. train
 		Grammar myGrammar = Train.getInstance().train(myBinaryTrainTreebank);
 		
 		// 4. decode
 		List<Tree> myParseTrees = new ArrayList<Tree>();		
-		for (int i = 0; i < myGoldTreebank.size(); i++) {
-			List<String> mySentence = myGoldTreebank.getAnalyses().get(i).getYield();
+		for (int i = 0; i < myBinaryGoldTreebank.size(); i++) {
+			List<String> mySentence = myBinaryGoldTreebank.getAnalyses().get(i).getYield();
 			Tree myParseTree = Decode.getInstance(myGrammar).decode(mySentence);
 			myParseTrees.add(myParseTree);
-		}
+	}
 		
-		// 5. de-transform trees
+		// 5. de-transform ParseTree trees to non binaries form to be comparable with gold set on evaluation phase
 		// TODO
 		
 		// 6. write output

@@ -8,10 +8,7 @@ import parser.tree.Tree;
 import parser.treebank.Treebank;
 import parser.utils.CountMap;
 
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 /**
  * @author Reut Tsarfaty
@@ -57,6 +54,7 @@ public class Train {
             myGrammar.addAll(theRules);
         }
         updateRulesLogProb(myGrammar);
+
         return myGrammar;
     }
 
@@ -68,9 +66,8 @@ public class Train {
      */
     private void updateRulesLogProb(Grammar myGrammar) {
         CountMap theRulesCounts = myGrammar.getRuleCounts();
-        Set<Rule> myRules=theRulesCounts.keySet();
-        CountMap nonTerminals= getNonTerminalSymbRulesCount(myRules);
-        for(Rule r:myRules){
+        Map<String,Integer> nonTerminals= getNonTerminalSymbRulesCount(theRulesCounts);
+        for(Rule r: (Set<Rule>)theRulesCounts.keySet()){
             int ruleCount=theRulesCounts.get(r);
             int topSymbolCount=nonTerminals.get(r.getLHS().getSymbols().get(0));
             double estimatedRuleProb=-1*Math.log(((double)ruleCount)/topSymbolCount);
@@ -79,11 +76,12 @@ public class Train {
 
     }
 
-    private CountMap<String> getNonTerminalSymbRulesCount(Set<Rule> myRules) {
-        CountMap nonTerminalSymbRulesCount=new CountMap<String>();
-        for(Rule r :myRules){
+    private Map<String,Integer> getNonTerminalSymbRulesCount(CountMap myRules) {
+        Map<String,Integer> nonTerminalSymbRulesCount=new HashMap<String,Integer>();
+        for(Rule r : (Set<Rule>)myRules.keySet()){
             String topSymbol=r.getLHS().getSymbols().get(0); //TODO- validate that the first symbol on the lhs list is the rule node in the tree
-            nonTerminalSymbRulesCount.increment(topSymbol);
+            Integer value=nonTerminalSymbRulesCount.get(topSymbol);
+            nonTerminalSymbRulesCount.put(topSymbol, value == null ? myRules.get(r) : value+myRules.get(r));
         }
         return nonTerminalSymbRulesCount;
     }
