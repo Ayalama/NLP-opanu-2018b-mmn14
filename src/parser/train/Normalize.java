@@ -52,7 +52,7 @@ public class Normalize {
      */
     public static Node binarizeNode(Node treeRoot, int h) {
         Node newRootNode = treeRoot.clone();
-        String origeRootLabel=treeRoot.getLabel();
+        String origeRootLabel = treeRoot.getLabel();
 
         if (newRootNode.getDaughters().size() > 2) {
             int numOfDaughters = newRootNode.getDaughters().size();
@@ -65,7 +65,7 @@ public class Normalize {
 
                 //prepare label of new right side dummy node
                 if (counter < numOfDaughters - 2) {
-                    String label = getNewLabel(origeRootLabel,origRootDaughters, counter, numOfDaughters,h);
+                    String label = getNewLabel(origeRootLabel, origRootDaughters, counter, numOfDaughters, h);
                     rightSideNode = new Node(label);
                 } else {//counter==n-2
                     rightSideNode = origRootDaughters.get(counter + 1).clone();
@@ -86,10 +86,10 @@ public class Normalize {
     }
 
 
-    private static String getNewLabel(String origeRootLabel,List<Node> nodes, int cuurentIndexCounter, int numOfDaughters, int h) {
+    private static String getNewLabel(String origeRootLabel, List<Node> nodes, int cuurentIndexCounter, int numOfDaughters, int h) {
         StringBuffer sb = new StringBuffer();
 
-        if(h<0){
+        if (h < 0) {
             for (int i = 0; i < numOfDaughters; i++) {
                 sb.append(nodes.get(i).getLabel());
                 if (i == cuurentIndexCounter) {
@@ -100,11 +100,11 @@ public class Normalize {
                     }
                 }
             }
-        }else{
+        } else {
             sb.append(origeRootLabel).append("@/");
-            for(int i=Math.max(0,cuurentIndexCounter-h+1); i<numOfDaughters && i<cuurentIndexCounter+1 ;i++){
+            for (int i = Math.max(0, cuurentIndexCounter - h + 1); i < numOfDaughters && i < cuurentIndexCounter + 1; i++) {
                 sb.append(nodes.get(i).getLabel());
-                if(i<cuurentIndexCounter && i < numOfDaughters - 1){
+                if (i < cuurentIndexCounter && i < numOfDaughters - 1) {
                     sb.append("-");
                 }
             }
@@ -164,4 +164,51 @@ public class Normalize {
 //
 //        return newRoot;
 //    }
+
+    /**
+     * get original tree from a binarized tree
+     * TODO- check what if returned list contains the actual root?!
+     *
+     * @param tree
+     * @return
+     */
+    public static Tree unnormalize(Tree tree) {
+        //normalized non binary Nodes in the tree
+        List<Node> denormchildrens = unBinarizeTreeNodes(tree.getRoot());
+        Node newRoot = denormchildrens.get(0);
+        return new Tree(newRoot);
+    }
+
+    private static List<Node> unBinarizeTreeNodes(Node root) {
+        List<Node> unBinarizeNodes = new ArrayList<Node>();
+        if (root.isLeaf()) {
+            unBinarizeNodes.add(root.clone());
+            return unBinarizeNodes;
+        }
+
+        List<Node> nonBinaryDaughters = new ArrayList<Node>();
+        for (Node child : root.getDaughters()) {
+            nonBinaryDaughters.addAll(unBinarizeTreeNodes(child));
+        }
+        Node binarizedRoot = root.clone();
+        binarizedRoot.removeAllDaughters();
+        binarizedRoot.addAllDaughters(nonBinaryDaughters);
+        nonBinaryDaughters = unBinarizeNode(binarizedRoot); //if not a dummy root, this will be the original root. otherwise, only his daughetrs
+        return nonBinaryDaughters;
+    }
+
+    private static List<Node> unBinarizeNode(Node binarizedRoot) {
+        //if the node is not a dummy node than return original node without any transformation
+        List<Node> unBinarizeNodes = new ArrayList<Node>();
+        if (!binarizedRoot.getLabel().contains("@")) {
+            unBinarizeNodes.add(binarizedRoot.clone());
+            return unBinarizeNodes;
+        }
+        //clone root daughters list
+        for (Node child : binarizedRoot.getDaughters()) {
+            unBinarizeNodes.add(child.clone());
+        }
+        return unBinarizeNodes;
+
+    }
 }

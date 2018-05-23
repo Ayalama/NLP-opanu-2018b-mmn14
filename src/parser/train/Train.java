@@ -70,7 +70,10 @@ public class Train {
         for(Rule r: (Set<Rule>)theRulesCounts.keySet()){
             int ruleCount=theRulesCounts.get(r);
             int topSymbolCount=nonTerminals.get(r.getLHS().getSymbols().get(0));
-            double estimatedRuleProb=-1*Math.log(((double)ruleCount)/topSymbolCount);
+            double estimatedRuleProb=0;
+            if(!r.getLHS().getSymbols().get(0).contains("@")){
+                estimatedRuleProb=-1*Math.log(((double)ruleCount)/topSymbolCount);
+            }
             r.setMinusLogProb(estimatedRuleProb);
         }
 
