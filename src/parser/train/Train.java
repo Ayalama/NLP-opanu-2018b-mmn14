@@ -42,6 +42,7 @@ public class Train {
 
     /**
      * procedure reads off grammar from the tree bank and keeps track of rule-counts + rules log probabilities
+     *
      * @param myTreebank
      * @return
      */
@@ -62,29 +63,33 @@ public class Train {
      * get the grammer as input, adn review all it's rules
      * each rules is updates with logprob in accordance to grammer rule counts and the count of instances of the rule precursor
      * update the log probabilities inline for each rule
+     *
      * @param myGrammar
      */
     private void updateRulesLogProb(Grammar myGrammar) {
         CountMap theRulesCounts = myGrammar.getRuleCounts();
-        Map<String,Integer> nonTerminals= getNonTerminalSymbRulesCount(theRulesCounts);
-        for(Rule r: (Set<Rule>)theRulesCounts.keySet()){
-            int ruleCount=theRulesCounts.get(r);
-            int topSymbolCount=nonTerminals.get(r.getLHS().getSymbols().get(0));
-            double estimatedRuleProb=0;
-            if(!r.getLHS().getSymbols().get(0).contains("@")){
-                estimatedRuleProb=-1*Math.log(((double)ruleCount)/topSymbolCount);
-            }
+        Map<String, Integer> nonTerminals = getNonTerminalSymbRulesCount(theRulesCounts);
+        for (Rule r : (Set<Rule>) theRulesCounts.keySet()) {
+            int ruleCount = theRulesCounts.get(r);
+            int topSymbolCount = nonTerminals.get(r.getLHS().getSymbols().get(0));
+            double estimatedRuleProb = 0;
+            estimatedRuleProb = -1 * Math.log(((double) ruleCount) / topSymbolCount);
+
+//            if (!r.getLHS().getSymbols().get(0).contains("@")) {
+//                estimatedRuleProb = -1 * Math.log(((double) ruleCount) / topSymbolCount);
+//            }
+
             r.setMinusLogProb(estimatedRuleProb);
         }
 
     }
 
-    private Map<String,Integer> getNonTerminalSymbRulesCount(CountMap myRules) {
-        Map<String,Integer> nonTerminalSymbRulesCount=new HashMap<String,Integer>();
-        for(Rule r : (Set<Rule>)myRules.keySet()){
-            String topSymbol=r.getLHS().getSymbols().get(0); //TODO- validate that the first symbol on the lhs list is the rule node in the tree
-            Integer value=nonTerminalSymbRulesCount.get(topSymbol);
-            nonTerminalSymbRulesCount.put(topSymbol, value == null ? myRules.get(r) : value+myRules.get(r));
+    private Map<String, Integer> getNonTerminalSymbRulesCount(CountMap myRules) {
+        Map<String, Integer> nonTerminalSymbRulesCount = new HashMap<String, Integer>();
+        for (Rule r : (Set<Rule>) myRules.keySet()) {
+            String topSymbol = r.getLHS().getSymbols().get(0);
+            Integer value = nonTerminalSymbRulesCount.get(topSymbol);
+            nonTerminalSymbRulesCount.put(topSymbol, value == null ? myRules.get(r) : value + myRules.get(r));
         }
         return nonTerminalSymbRulesCount;
     }

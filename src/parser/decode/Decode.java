@@ -53,13 +53,22 @@ public class Decode {
             baselineTree.getRoot().addDaughter(preTerminal);
         }
 
-        // CYK decoder
-        Tree ckyTree = ckyDecode(input);
+
+        // CKY decoder
+        Tree ckyTree =  CKYDecode.getInstance(grammar).decode(input);
         if (ckyTree == null) {
             return baselineTree;
         } else {
             return ckyTree;
         }
+
+//        // CYK decoder
+//        Tree ckyTree = ckyDecode(input);
+//        if (ckyTree == null) {
+//            return baselineTree;
+//        } else {
+//            return ckyTree;
+//        }
     }
 
     /**

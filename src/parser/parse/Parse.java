@@ -40,6 +40,7 @@ public class Parse {
         }
 
         // 1. read input
+        System.out.println("Read input...");
         Treebank myGoldTreebank = TreebankReader.getInstance().read(true, args[0]);
         Treebank myTrainTreebank = TreebankReader.getInstance().read(true, args[1]);
 
@@ -48,7 +49,8 @@ public class Parse {
             h = Integer.parseInt(args[3]);
         }
 
-        // 2.1 transform trees- myTrainTreebank
+        // 2. transform trees- myTrainTreebank
+        System.out.println("Transform train trees...");
         Treebank myBinaryTrainTreebank = new Treebank();
         for (int i = 0; i < myTrainTreebank.size(); i++) {
             Tree myTree = myTrainTreebank.getAnalyses().get(i);//get tree in index i from treebank
@@ -56,21 +58,25 @@ public class Parse {
             myBinaryTrainTreebank.add(myBinaryTree);
         }
 
-        // 2.2 transform trees- myGoldTreebank
-        Treebank myBinaryGoldTreebank = new Treebank();
-        for (int i = 0; i < myGoldTreebank.size(); i++) {
-            Tree myTree = myGoldTreebank.getAnalyses().get(i);//get tree in index i from treebank
-            Tree myBinaryTree = Normalize.normalize(myTree, h);
-            myBinaryGoldTreebank.add(myBinaryTree);
-        }
+//        // 2.2 transform trees- myGoldTreebank
+//        System.out.println("start transform golden trees...");
+//        Treebank myBinaryGoldTreebank = new Treebank();
+//        for (int i = 0; i < myGoldTreebank.size(); i++) {
+//            Tree myTree = myGoldTreebank.getAnalyses().get(i);//get tree in index i from treebank
+//            Tree myBinaryTree = Normalize.normalize(myTree, h);
+//            myBinaryGoldTreebank.add(myBinaryTree);
+//        }
 
         // 3. train
+        System.out.println("Train grammar...");
         Grammar myGrammar = Train.getInstance().train(myBinaryTrainTreebank);
 
         // 4. decode
+        System.out.println("Decoding golden set (CKY)...");
         List<Tree> myParseTrees = new ArrayList<Tree>();
-        for (int i = 0; i < myBinaryGoldTreebank.size(); i++) {
-            List<String> mySentence = myBinaryGoldTreebank.getAnalyses().get(i).getYield();
+        for (int i = 0; i < myGoldTreebank.size(); i++) {
+            System.out.println("decode: parsing sentence # "+i);
+            List<String> mySentence = myGoldTreebank.getAnalyses().get(i).getYield();
             Tree myParseTree = Decode.getInstance(myGrammar).decode(mySentence);
             myParseTrees.add(myParseTree);
         }
@@ -79,14 +85,15 @@ public class Parse {
         // 5. de-transform ParseTree trees to non binaries form to be comparable with gold set on evaluation phase
 //        Tree myBinTree=myBinaryTrainTreebank.getAnalyses().get(0);
 //        Tree myBinTreeUnnorm=Normalize.de-normalize(myBinTree);
+        System.out.println("De-transform best parsed trees...");
         List<Tree> myParseTreesDetransdormed = new ArrayList<Tree>();
         for (int i = 0; i < myParseTrees.size(); i++) {
             Tree myTree = myParseTrees.get(i);//get tree in index i from treebank
             Tree myParseTreeUnnorm = Normalize.unnormalize(myTree);
             myParseTreesDetransdormed.add(myParseTreeUnnorm);
         }
-
-
+//// TODO: 23/05/2018 add vertical markovization (Q4) 
+//// TODO: 23/05/2018 - change calculation of logprobs under different h=0,1,2... 
         // 6. write output
         writeOutput(args[2], myGrammar, myParseTreesDetransdormed);
     }
