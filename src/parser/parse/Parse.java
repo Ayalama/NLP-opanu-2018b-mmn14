@@ -75,9 +75,16 @@ public class Parse {
         System.out.println("Decoding golden set (CKY)...");
         List<Tree> myParseTrees = new ArrayList<Tree>();
         for (int i = 0; i < myGoldTreebank.size(); i++) {
-            System.out.println("decode: parsing sentence # "+i);
+            System.out.print("decode: parsing sentence # "+i);
             List<String> mySentence = myGoldTreebank.getAnalyses().get(i).getYield();
+
+            System.out.print(", orig sentence:"+mySentence);
+
             Tree myParseTree = Decode.getInstance(myGrammar).decode(mySentence);
+
+            System.out.print(", parsed sentence:"+ myParseTree.getYield());
+            System.out.println("");
+
             myParseTrees.add(myParseTree);
         }
 
@@ -92,10 +99,12 @@ public class Parse {
             Tree myParseTreeUnnorm = Normalize.unnormalize(myTree);
             myParseTreesDetransdormed.add(myParseTreeUnnorm);
         }
-//// TODO: 23/05/2018 add vertical markovization (Q4) 
-//// TODO: 23/05/2018 - change calculation of logprobs under different h=0,1,2... 
+//// TODO: 23/05/2018 add vertical markovization (Q4)
         // 6. write output
         writeOutput(args[2], myGrammar, myParseTreesDetransdormed);
+//// TODO: 09/06/2018 evaluate output- test2_ckyparse
+//// TODO: 09/06/2018 continue to Q4
+
     }
 
 

@@ -73,11 +73,9 @@ public class CKYDecode {
      */
     private CKYCell[][] initCKYTable(int inputSize, int symbolesSize) {
         CKYCell[][] cells = new CKYCell[inputSize + 1][inputSize + 1];
-        for (int i = 0; i < inputSize; i++) {
-            for (int j = 0; j < inputSize; j++) {
-                for (int z = 0; z < symbolesSize; z++) {
+        for (int i = 0; i < inputSize+1; i++) {
+            for (int j = 0; j < inputSize+1; j++) {
                     cells[i][j] = new CKYCell();
-                }
             }
         }
         return cells;
@@ -119,8 +117,8 @@ public class CKYDecode {
         }
 
         // Fill in the rest of the table
-        for (int span = 2; span < input.size(); span++) {
-            for (int begin = 0; begin < input.size() - span; begin++) {
+        for (int span = 2; span < input.size()+1; span++) {
+            for (int begin = 0; begin < input.size() - span+1; begin++) {
                 int end = begin + span;
                 CKYCell cellA=ckyTable[begin][end];
 
@@ -153,7 +151,7 @@ public class CKYDecode {
             }
         }
 
-        Node parsedTreeRoot = buildTree(ckyTable, input, 0, input.size() - 1, "S");
+        Node parsedTreeRoot = buildTree(ckyTable, input, 0, input.size(), "S");
 
         if(parsedTreeRoot !=null){
             Node top=new Node("TOP");
@@ -211,7 +209,7 @@ public class CKYDecode {
         boolean added = Boolean.TRUE;
 
         //get all possible symboles as candidates for rhs of unary rule
-        Set<String> nonTerminalSymbols = cell.getPossibleSymbols();
+        Set<String> nonTerminalSymbols = new HashSet<String>(cell.getPossibleSymbols());
 
         while (added) {
             added = Boolean.FALSE;
