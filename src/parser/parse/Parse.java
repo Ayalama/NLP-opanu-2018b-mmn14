@@ -58,15 +58,6 @@ public class Parse {
             myBinaryTrainTreebank.add(myBinaryTree);
         }
 
-//        // 2.2 transform trees- myGoldTreebank
-//        System.out.println("start transform golden trees...");
-//        Treebank myBinaryGoldTreebank = new Treebank();
-//        for (int i = 0; i < myGoldTreebank.size(); i++) {
-//            Tree myTree = myGoldTreebank.getAnalyses().get(i);//get tree in index i from treebank
-//            Tree myBinaryTree = Normalize.normalize(myTree, h);
-//            myBinaryGoldTreebank.add(myBinaryTree);
-//        }
-
         // 3. train
         System.out.println("Train grammar...");
         Grammar myGrammar = Train.getInstance().train(myBinaryTrainTreebank);
@@ -99,11 +90,12 @@ public class Parse {
             Tree myParseTreeUnnorm = Normalize.unnormalize(myTree);
             myParseTreesDetransdormed.add(myParseTreeUnnorm);
         }
-//// TODO: 23/05/2018 add vertical markovization (Q4)
+
         // 6. write output
+        System.out.println("write output to "+args[2]+"...");
         writeOutput(args[2], myGrammar, myParseTreesDetransdormed);
-//// TODO: 09/06/2018 evaluate output- test2_ckyparse
 //// TODO: 09/06/2018 continue to Q4
+//// TODO: 23/05/2018 add vertical markovization (Q5)
 
     }
 

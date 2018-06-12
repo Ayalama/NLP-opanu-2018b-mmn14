@@ -119,6 +119,9 @@ public class Train {
                 }
                 Event eRHS = new Event(sb.toString());
                 Rule theRule = new Rule(eLHS, eRHS); //binary rule
+                if (myNode.getParent().getLabel().equals("TOP")){
+                    theRule.setTop(Boolean.TRUE);
+                }
                 if (myNode.isPreTerminal())
                     theRule.setLexical(true);
                 if (myNode.isRoot())

@@ -15,6 +15,7 @@ public class CKYDecode {
 
     public static Set<Rule> m_setGrammarRules = null;
     public static Map<String, Set<Rule>> m_mapLexicalRules = null;
+    public static Map<String, Set<Rule>> m_syntaxticEnteries = null;
     public static Grammar grammar;
 
     /**
@@ -28,6 +29,7 @@ public class CKYDecode {
             m_singDecoder = new CKYDecode();
             m_setGrammarRules = g.getSyntacticRules();
             m_mapLexicalRules = g.getLexicalEntries();
+            m_syntaxticEnteries = getSyntaxticEnteries(g);
             grammar = g;
         }
         return m_singDecoder;
@@ -49,16 +51,16 @@ public class CKYDecode {
 
     /**
      * return unary rules that their child is labelSearched, out of given set of rules
-     * @param rules- given set of rules to search in
+     *
      * @param labelSearched- expected RHS of the rule
      * @return
      */
-    private List<Rule> getUnaryRulesForWord(Set<Rule> rules, String labelSearched) {
-        if (rules == null) return new ArrayList<Rule>();
+    private List<Rule> getUnaryRulesForWord(String labelSearched) {
+        if (!m_syntaxticEnteries.containsKey(labelSearched)) return new ArrayList<Rule>();
         Set<Rule> unaryRules = new HashSet<Rule>();
-        for (Rule rule : rules) {
+        for (Rule rule : m_syntaxticEnteries.get(labelSearched)) {
             String rhsSymbol = rule.getRHS().getSymbols().get(0);
-            if (rhsSymbol.trim().equals(labelSearched.trim()) && rule.getRHS().getSymbols().size() == 1) {
+            if (rule.getRHS().getSymbols().size() == 1) {
                 unaryRules.add(rule);
             }
         }
@@ -67,15 +69,16 @@ public class CKYDecode {
 
     /**
      * inialize scores array (CKY chart)
-     * @param inputSize- number of words in input sentence
+     *
+     * @param inputSize-    number of words in input sentence
      * @param symbolesSize- number of non-terminal symbols in grammar
      * @return
      */
     private CKYCell[][] initCKYTable(int inputSize, int symbolesSize) {
         CKYCell[][] cells = new CKYCell[inputSize + 1][inputSize + 1];
-        for (int i = 0; i < inputSize+1; i++) {
-            for (int j = 0; j < inputSize+1; j++) {
-                    cells[i][j] = new CKYCell();
+        for (int i = 0; i < inputSize + 1; i++) {
+            for (int j = 0; j < inputSize + 1; j++) {
+                cells[i][j] = new CKYCell();
             }
         }
         return cells;
@@ -83,119 +86,165 @@ public class CKYDecode {
 
     /**
      * returne the base parsed tree, based on trained grammar according to
+     *
      * @param input
      * @return
      */
     private Tree ckyDecode(List<String> input) {
         List<String> nonTerminalSymbols = new ArrayList<String>(grammar.getNonTerminalSymbols());
+        Map<String, Set<Rule>> lexicalEntries = grammar.getLexicalEntries(); //map of lexical word and all related rules
         CKYCell[][] ckyTable = initCKYTable(input.size(), nonTerminalSymbols.size());
 
         // Fill in the table's diagonal, the words' tags
         for (int i = 0; i < input.size(); i++) {
+            Set<Rule> lexRulesForWord = new HashSet<Rule>();
             int begin = i;
             int end = i + 1;
-            CKYCell cell=ckyTable[begin][end];
+            CKYCell cell = ckyTable[begin][end];
             String word = input.get(begin);
-            boolean foundRule = Boolean.FALSE;
 
-            for (int symbolIdx = 0; symbolIdx < nonTerminalSymbols.size(); symbolIdx++) {
-                String nonTerminal = nonTerminalSymbols.get(symbolIdx);
-                List<Rule> rules = getUnaryRulesForWord(m_mapLexicalRules.get(nonTerminal), word);
-                if (rules.size() > 0) {
-                    Rule lexRule = rules.get(0);
-                    double logprob = lexRule.getMinusLogProb();
-                    cell.addScore(nonTerminal,logprob);
-                    foundRule = Boolean.TRUE;
-                }
+            if (lexicalEntries.containsKey(word)) {
+                lexRulesForWord.addAll(lexicalEntries.get(word));
+            } else {
+                Rule ruleNN = new Rule("NN", word);
+                ruleNN.setMinusLogProb(0.0);
+                lexRulesForWord.add(ruleNN);
             }
-            if (!foundRule) {
-                //if score array not updated for word (all scored are -1) tag word as NN with a score of 0
-                cell.addScore("NN",0.0);
+            for (Rule rule : lexRulesForWord) {
+                cell.addScore(rule.getLHS().getSymbols().get(0), rule.getMinusLogProb());
             }
             // Add all unary rules that match.
             addUnary(cell);
         }
 
         // Fill in the rest of the table
-        for (int span = 2; span < input.size()+1; span++) {
-            for (int begin = 0; begin < input.size() - span+1; begin++) {
+        for (int span = 2; span < input.size() + 1; span++) {
+            for (int begin = 0; begin < input.size() + 1 - span; begin++) {
                 int end = begin + span;
-                CKYCell cellA=ckyTable[begin][end];
+                CKYCell cellHead = ckyTable[begin][end];
 
                 for (int split = begin + 1; split < end; split++) {
                     //for each rule A->BC in grammar
-                    CKYCell cellLeft=ckyTable[begin][split];
-                    CKYCell cellRight=ckyTable[split][end];
+                    CKYCell cellLeft = ckyTable[begin][split];
+                    CKYCell cellRight = ckyTable[split][end];
 
-                    for (Rule rule : m_setGrammarRules) {
+                    for (String labelLeft : cellLeft.getPossibleSymbols()) {
+                        Set<Rule> rulesLeft = m_syntaxticEnteries.get(labelLeft);
 
-                        if (rule.getRHS().getSymbols().size() == 2) {
-                            String labelA = rule.getLHS().getSymbols().get(0);
-                            String labelB = rule.getRHS().getSymbols().get(0);
-                            String labelC = rule.getRHS().getSymbols().get(1);
+                        for (Rule lRule : rulesLeft) {
+                            if (lRule.getRHS().getSymbols().size() == 2 && lRule.getRHS().getSymbols().get(0).equals(labelLeft)) {
+                                String labelHead = lRule.getLHS().getSymbols().get(0);
+                                String labelRight = lRule.getRHS().getSymbols().get(1); //right side of rule
 
-                            //// check if B is in left side of scores and C in in right side of scores
-                            if (cellLeft.getScore(labelB) != null && cellRight.getScore(labelC) != null) {
-                                double prob = cellLeft.getScore(labelB) + cellRight.getScore(labelC) + rule.getMinusLogProb();
-                                Double scoreA = cellA.getScore(labelA);
-                                if ( scoreA == null || prob < scoreA ) {
-                                    cellA.addScore(labelA,prob);
-                                    cellA.addTriplet(labelA, new Triplet(split, labelB, labelC));
+                                if (cellRight.getPossibleSymbols().contains(labelRight)) {
+                                    double prob = cellLeft.getScore(labelLeft) + cellRight.getScore(labelRight) + lRule.getMinusLogProb();
+                                    if (!cellHead.getPossibleSymbols().contains(labelHead) || prob < cellHead.getScore(labelHead)) {
+                                        cellHead.addScore(labelHead, prob);
+                                        cellHead.addTriplet(labelHead, new Triplet(split, labelLeft, labelRight));
+                                    }
                                 }
 
                             }
                         }
                     }
+//                    for (Rule rule : m_setGrammarRules) {
+//
+//                        if (rule.getRHS().getSymbols().size() == 2) {
+//                            String labelA = rule.getLHS().getSymbols().get(0);
+//                            String labelB = rule.getRHS().getSymbols().get(0);
+//                            String labelC = rule.getRHS().getSymbols().get(1);
+//
+//                            //// check if B is in left side of scores and C in in right side of scores
+//                            if (cellLeft.getScore(labelB) != null && cellRight.getScore(labelC) != null) {
+//                                double prob = cellLeft.getScore(labelB) + cellRight.getScore(labelC) + rule.getMinusLogProb();
+//                                Double scoreA = cellHead.getScore(labelA);
+//                                if (scoreA == null || prob < scoreA) {
+//                                    cellHead.addScore(labelA, prob);
+//                                    cellHead.addTriplet(labelA, new Triplet(split, labelB, labelC));
+//                                }
+//
+//                            }
+//                        }
+//                    }
                 }
-                addUnary(cellA);
+                addUnary(cellHead);
             }
         }
 
-        Node parsedTreeRoot = buildTree(ckyTable, input, 0, input.size(), "S");
+        Node topNode = new Node("TOP");
+        Node parsedTreeRoot = buildTree(ckyTable, input, 0, input.size(), grammar.getStartSymbols(), topNode);
 
-        if(parsedTreeRoot !=null){
-            Node top=new Node("TOP");
-            top.addDaughter(parsedTreeRoot);
-            return new Tree(top);
-        }else{
+
+        if (parsedTreeRoot != null) {
+            parsedTreeRoot.setRoot(Boolean.TRUE);
+            topNode.addDaughter(parsedTreeRoot);
+            return new Tree(topNode);
+        } else {
             return null;
         }
     }
 
+    private static Map<String, Set<Rule>> getSyntaxticEnteries(Grammar grammar) {
+        Map<String, Set<Rule>> syntaxticEnteries = new HashMap<String, Set<Rule>>();
+        for (Rule rule : grammar.getSyntacticRules()) {
+            List<String> rhsSymbols = rule.getRHS().getSymbols();
+            for (String symbol : rhsSymbols) {
+                if (syntaxticEnteries.containsKey(symbol)) {
+                    syntaxticEnteries.get(symbol).add(rule);
+                } else {
+                    Set<Rule> symbolEntries = new HashSet<Rule>();
+                    symbolEntries.add(rule);
+                    syntaxticEnteries.put(symbol, symbolEntries);
+                }
+            }
+        }
+        return syntaxticEnteries;
+    }
+
     /**
      * get the CKY chart and build the tree that yield minimun minus log prob and starts with S
-     * @param ckyTable- array of left side index,s right ide index and chart score for each symbol in the grammar together with Triplet for each symbol in the grammar mentioning the split index, left child and right child
-     * @param input- input sentence
-     * @param begin- index in cky chart to begin with
-     * @param end- index in cky chart to end with
-     * @param rootLabel- expected label of current sub-tree
+     *
+     * @param ckyTable-   array of left side index,s right ide index and chart score for each symbol in the grammar together with Triplet for each symbol in the grammar mentioning the split index, left child and right child
+     * @param input-      input sentence
+     * @param begin-      index in cky chart to begin with
+     * @param end-        index in cky chart to end with
+     * @param rootLabels- expected label of current sub-tree
      * @return
      */
-    private Node buildTree(CKYCell[][] ckyTable, List<String> input, int begin, int end, String rootLabel) {
+    private Node buildTree(CKYCell[][] ckyTable, List<String> input, int begin, int end, Set<String> rootLabels, Node parentNode) {
+        String rootLabel = getBestRootLabel(ckyTable, begin, end, rootLabels);
 
-        if (ckyTable[begin][end].getScore(rootLabel)== null) {
+        if (rootLabel == null) {
             return null; //we don't have root label at the top of the chart
         }
 
         Node rootNode = new Node(rootLabel);
+        rootNode.setParent(parentNode);
 
         Triplet<Integer, String, String> startTriplet = ckyTable[begin][end].getTriplet(rootLabel);
-        if (startTriplet==null) { //Terminal
+        if (startTriplet == null) { //Terminal
             // No back pointer. Terminal
             String terminalLabel = input.get(begin);
             rootNode.addDaughter(new Node(terminalLabel));
         } else {
             if (startTriplet.getFirst() == -1) {//Unary rule
                 String labelB = startTriplet.getSecond();
-                Node nodeB = buildTree(ckyTable, input, begin, end, labelB);
+                Set<String> labelBset = new HashSet<String>();
+                labelBset.add(labelB);
+                Node nodeB = buildTree(ckyTable, input, begin, end, labelBset, rootNode);
                 rootNode.addDaughter(nodeB);
             } else {// Binary rule
                 int split = startTriplet.getFirst();
                 String labelB = startTriplet.getSecond();
-                String labelC = startTriplet.getThird();
+                Set<String> labelBset = new HashSet<String>();
+                labelBset.add(labelB);
 
-                Node nodeB = buildTree(ckyTable, input, begin, split, labelB);
-                Node nodeC = buildTree(ckyTable, input, split, end, labelC);
+                String labelC = startTriplet.getThird();
+                Set<String> labelCset = new HashSet<String>();
+                labelCset.add(labelC);
+
+                Node nodeB = buildTree(ckyTable, input, begin, split, labelBset, rootNode);
+                Node nodeC = buildTree(ckyTable, input, split, end, labelCset, rootNode);
                 rootNode.addDaughter(nodeB);
                 rootNode.addDaughter(nodeC);
             }
@@ -205,26 +254,46 @@ public class CKYDecode {
         return rootNode;
     }
 
+    private String getBestRootLabel(CKYCell[][] ckyTable, int begin, int end, Set<String> rootLabels) {
+        CKYCell rootCell = ckyTable[begin][end];
+        Set<String> possibleSymbols = rootCell.getPossibleSymbols();
+        double minScore = Double.POSITIVE_INFINITY;
+        String bestRootLabel = null;
+
+        for (String rootLabel : rootLabels) {
+            if (possibleSymbols.contains(rootLabel)) {
+                double score = rootCell.getScore(rootLabel);
+                if (score < minScore) {
+                    bestRootLabel = rootLabel;
+                    minScore = score;
+                }
+            }
+        }
+        return bestRootLabel;
+    }
+
     private void addUnary(CKYCell cell) {
         boolean added = Boolean.TRUE;
 
-        //get all possible symboles as candidates for rhs of unary rule
-        Set<String> nonTerminalSymbols = new HashSet<String>(cell.getPossibleSymbols());
+        Set<String> nonTerminalSymbols = null;
 
         while (added) {
             added = Boolean.FALSE;
-            for (String labelB: nonTerminalSymbols) {
+            //get all possible symboles as candidates for rhs of unary rule
+            nonTerminalSymbols = new HashSet<String>(cell.getPossibleSymbols());
+
+            for (String labelB : nonTerminalSymbols) {
                 Double scoreB = cell.getScore(labelB);
                 if (!(scoreB == null)) {//Label B is a key in the diagonal of the matrix
-                    List<Rule> unaryRulesB = getUnaryRulesForWord(m_setGrammarRules, labelB);//all rules from the form A->B
+                    List<Rule> unaryRulesB = getUnaryRulesForWord(labelB);//all rules from the form A->B
                     if (unaryRulesB.size() > 0) {
                         for (Rule rule : unaryRulesB) {
                             double unaryScore = rule.getMinusLogProb() + scoreB;
                             String labelA = rule.getLHS().getSymbols().get(0);
                             Double scoreA = cell.getScore(labelA);
-                            if (scoreA == null || unaryScore < scoreA ) {
-                                cell.addScore(labelA,unaryScore);
-                                cell.addTriplet(labelA,new Triplet(-1, labelB, null)); // i for B's index.
+                            if (scoreA == null || unaryScore < scoreA.doubleValue()) {
+                                cell.addScore(labelA, unaryScore);
+                                cell.addTriplet(labelA, new Triplet(-1, labelB, null)); // i for B's index.
                                 added = true;
                             }
 
