@@ -1,3 +1,0 @@
-this test is perior to adding "CKYDecode" and "CKYCell" classes (slower parsing
-In addition, logprob calc was automatic 0 for "@" included symbols
-h=2

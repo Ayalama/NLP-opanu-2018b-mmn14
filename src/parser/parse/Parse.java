@@ -49,6 +49,11 @@ public class Parse {
             h = Integer.parseInt(args[3]);
         }
 
+        int decodeTyp = 1;
+        if (args.length > 4) {
+            decodeTyp = Integer.parseInt(args[4]);
+        }
+
         // 2. transform trees- myTrainTreebank
         System.out.println("Transform train trees...");
         Treebank myBinaryTrainTreebank = new Treebank();
@@ -66,15 +71,11 @@ public class Parse {
         System.out.println("Decoding golden set (CKY)...");
         List<Tree> myParseTrees = new ArrayList<Tree>();
         for (int i = 0; i < myGoldTreebank.size(); i++) {
-            System.out.print("decode: parsing sentence # "+i);
+            System.out.print("decode: parsing sentence # " + i);
             List<String> mySentence = myGoldTreebank.getAnalyses().get(i).getYield();
-
-            System.out.print(", orig sentence:"+mySentence);
-
-            Tree myParseTree = Decode.getInstance(myGrammar).decode(mySentence);
-
-            System.out.print(", parsed sentence:"+ myParseTree.getYield());
-            System.out.println("");
+            System.out.print(", orig sentence:" + mySentence);
+            Tree myParseTree = Decode.getInstance(myGrammar).decode(mySentence,decodeTyp);
+            System.out.println(", parsed sentence:" + myParseTree.getYield());
 
             myParseTrees.add(myParseTree);
         }
@@ -92,7 +93,7 @@ public class Parse {
         }
 
         // 6. write output
-        System.out.println("write output to "+args[2]+"...");
+        System.out.println("write output to " + args[2] + "...");
         writeOutput(args[2], myGrammar, myParseTreesDetransdormed);
 //// TODO: 09/06/2018 continue to Q4
 //// TODO: 23/05/2018 add vertical markovization (Q5)

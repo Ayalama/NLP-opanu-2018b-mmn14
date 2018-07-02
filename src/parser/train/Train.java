@@ -48,16 +48,96 @@ public class Train {
      */
     public Grammar train(Treebank myTreebank) {
         Grammar myGrammar = new Grammar();
+        Map<String, CountMap<String>> nonTerminalBiGram = new HashMap<String, CountMap<String>>();
+        Map<String, String> nonTerminalMaxBiGram = new HashMap<String, String>();
+
         //for each tree in the tree bank
         for (int i = 0; i < myTreebank.size(); i++) {
             Tree myTree = myTreebank.getAnalyses().get(i);//get tree in index i from treebank
-            List<Rule> theRules = getRules(myTree); //get tree rules
+            List<Rule> theRules = getRules(myTree); //get tree rules. rules are in the order of sentence words from left to right
             myGrammar.addAll(theRules);
+
+            nonTerminalBiGram = getBiGramForTree(theRules, nonTerminalBiGram);
         }
         updateRulesLogProb(myGrammar);
 
+        // pushing through- smoothing related part
+        myGrammar.setBiGramMap(nonTerminalBiGram);
+        Map<String, Double> nonTerminalBiGramMaxLogprob=new HashMap<String, Double>();
+
+        for (String nonTerminalSymbol : nonTerminalBiGram.keySet()) {
+            String maxRightTerm=nonTerminalBiGram.get(nonTerminalSymbol).maxKey();
+            nonTerminalMaxBiGram.put(nonTerminalSymbol, maxRightTerm);
+
+            //calc log-prob
+            int totalCountForSynbol=nonTerminalBiGram.get(nonTerminalSymbol).allCounts();
+            Double logprob=-Math.log(nonTerminalBiGram.get(nonTerminalSymbol).get(maxRightTerm))+Math.log(totalCountForSynbol);
+            nonTerminalBiGramMaxLogprob.put(nonTerminalSymbol,logprob);
+        }
+        myGrammar.setM_maxBiGramMap(nonTerminalMaxBiGram);
+        myGrammar.setM_maxBiGramMapLogprob(nonTerminalBiGramMaxLogprob);
+
+        //calc log prob to NN tag
+        int totalLexRulesInstances=0;
+        for(Rule rule: myGrammar.getLexicalRules()){
+            int count=myGrammar.getRuleCounts().get(rule);
+            totalLexRulesInstances=totalLexRulesInstances+count;
+        }
+        int NNcount=getNNLexicalCount(myGrammar);
+        myGrammar.setNNLogprob(-Math.log(NNcount)+Math.log(totalLexRulesInstances));
+
+        // pushing through- smoothing related part
+
         return myGrammar;
     }
+
+    private int getNNLexicalCount(Grammar grammar) {
+        Set<Rule> NNRules = new HashSet<Rule>();
+        int NNCount=0;
+        for (Rule rule : grammar.getLexicalRules()) {
+            String lhsSymbol = rule.getLHS().getSymbols().get(0);
+            if(lhsSymbol.equals("NN")){
+                NNCount=NNCount+grammar.getRuleCounts().get(rule);
+            }
+        }
+        return NNCount;
+    }
+    /**
+     * Map<String,CountMap<String>>- contains tag i as a key and tag i+1 as a key to countmap to hold bi-gram counts for unknown words. used for smoothing
+     *
+     * @param treeRules
+     * @param nonTerminalBiGram
+     * @return
+     */
+    private Map<String, CountMap<String>> getBiGramForTree(List<Rule> treeRules, Map<String, CountMap<String>> nonTerminalBiGram) {
+        String leftTag = "";
+        String rightTag = "";
+        int count = 0;
+
+        for (Rule rule : treeRules) {
+            if (rule.isLexical()) {
+                if (count == 0) {
+                    leftTag = rule.getLHS().getSymbols().get(0);
+                    count++;
+                } else {
+                    rightTag = rule.getLHS().getSymbols().get(0);
+                    if (!rightTag.equals(rule.getRHS().getSymbols().get(0))) {
+                        if (nonTerminalBiGram.containsKey(leftTag)) {
+                            nonTerminalBiGram.get(leftTag).increment(rightTag);
+                        } else {
+                            CountMap<String> countMap = new CountMap<String>();
+                            countMap.increment(rightTag);
+                            nonTerminalBiGram.put(leftTag, countMap);
+                        }
+                    }
+                    leftTag = rightTag;
+                }
+            }
+        }
+
+        return nonTerminalBiGram;
+    }
+
 
     /**
      * get the grammer as input, adn review all it's rules
@@ -74,11 +154,6 @@ public class Train {
             int topSymbolCount = nonTerminals.get(r.getLHS().getSymbols().get(0));
             double estimatedRuleProb = 0;
             estimatedRuleProb = -1 * Math.log(((double) ruleCount) / topSymbolCount);
-
-//            if (!r.getLHS().getSymbols().get(0).contains("@")) {
-//                estimatedRuleProb = -1 * Math.log(((double) ruleCount) / topSymbolCount);
-//            }
-
             r.setMinusLogProb(estimatedRuleProb);
         }
 
@@ -119,7 +194,7 @@ public class Train {
                 }
                 Event eRHS = new Event(sb.toString());
                 Rule theRule = new Rule(eLHS, eRHS); //binary rule
-                if (myNode.getParent().getLabel().equals("TOP")){
+                if (myNode.getParent().getLabel().equals("TOP")) {
                     theRule.setTop(Boolean.TRUE);
                 }
                 if (myNode.isPreTerminal())

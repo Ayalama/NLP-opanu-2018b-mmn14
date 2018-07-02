@@ -38,7 +38,7 @@ public class Decode {
      * @param input- sentence to decode
      * @return
      */
-    public Tree decode(List<String> input) {
+    public Tree decode(List<String> input, int type) {
 
         // Done: Baseline Decoder
         //       Returns a flat tree with NN labels on all leaves
@@ -54,8 +54,13 @@ public class Decode {
         }
 
 
-        // CKY decoder
-        Tree ckyTree =  CKYDecode.getInstance(grammar).decode(input);
+        // CKY decoder - type 1 for Q3-4 decoder. type 2 for decoder with smoothing. type 3 for decoder with...
+        Tree ckyTree = null;
+        if (type == 1) {
+            ckyTree = CKYDecode.getInstance(grammar).decode(input);
+        } else if (type == 2) { //include unknown words smoothing
+            ckyTree = CKYDecodeExtended.getInstance(grammar).decode(input);
+        }
         if (ckyTree == null) {
             return baselineTree;
         } else {
@@ -73,7 +78,8 @@ public class Decode {
 
     /**
      * return unary rules that their child is labelSearched, out of given set of rules
-     * @param rules- given set of rules to search in
+     *
+     * @param rules-         given set of rules to search in
      * @param labelSearched- expected RHS of the rule
      * @return
      */
@@ -91,7 +97,8 @@ public class Decode {
 
     /**
      * inialize back pointers array(CKY chart)
-     * @param inputSize- number of words in input sentence
+     *
+     * @param inputSize-    number of words in input sentence
      * @param symbolesSize- number of non-terminal symbols in grammar
      * @return
      */
@@ -110,7 +117,8 @@ public class Decode {
 
     /**
      * inialize scores array (CKY chart)
-     * @param inputSize- number of words in input sentence
+     *
+     * @param inputSize-    number of words in input sentence
      * @param symbolesSize- number of non-terminal symbols in grammar
      * @return
      */
@@ -128,6 +136,7 @@ public class Decode {
 
     /**
      * returne the base parsed tree, based on trained grammar according to
+     *
      * @param input
      * @return
      */
@@ -202,11 +211,11 @@ public class Decode {
 //        }
 
         Node parsedTreeRoot = buildTree(score, back, nonTerminalSymbols, input, 0, input.size() - 1, "S");
-        if(parsedTreeRoot !=null){
-            Node top=new Node("TOP");
+        if (parsedTreeRoot != null) {
+            Node top = new Node("TOP");
             top.addDaughter(parsedTreeRoot);
             return new Tree(top);
-        }else{
+        } else {
             return null;
         }
 
@@ -214,13 +223,14 @@ public class Decode {
 
     /**
      * get the CKY chart and build the tree that yield minimun minus log prob and starts with S
-     * @param score- array of left side index, right side index and chart score for each symbol in the grammar
-     * @param back- array of left side index, right side index and a Triplet for each symbol in the grammar mentioning the split index, left child and right child
+     *
+     * @param score-              array of left side index, right side index and chart score for each symbol in the grammar
+     * @param back-               array of left side index, right side index and a Triplet for each symbol in the grammar mentioning the split index, left child and right child
      * @param nonTerminalSymbols- grammar non-terminal symbols
-     * @param input- input sentence
-     * @param begin- index in cky chart to begin with
-     * @param end- index in cky chart to end with
-     * @param rootLabel- expected label of current sub-tree
+     * @param input-              input sentence
+     * @param begin-              index in cky chart to begin with
+     * @param end-                index in cky chart to end with
+     * @param rootLabel-          expected label of current sub-tree
      * @return
      */
     private Node buildTree(double[][][] score, Triplet[][][] back, List<String> nonTerminalSymbols, List<String> input, int begin, int end, String rootLabel) {

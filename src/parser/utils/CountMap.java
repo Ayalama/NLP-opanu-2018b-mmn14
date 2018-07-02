@@ -69,4 +69,22 @@ public final class CountMap<T> extends HashMap<T, Integer> {
 		   }
 		   return count;
 	}
+
+	public T maxKey()
+	{
+
+		int maxCount = 0;
+		T maxArg = null;
+
+		Iterator<T> it = this.keySet().iterator();
+		while (it.hasNext()) {
+			T key =  it.next();
+			Integer val = this.get(key);
+			if (val>maxCount){
+				maxCount=val;
+				maxArg=key;
+			}
+		}
+		return maxArg;
+	}
 }

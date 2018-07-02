@@ -55,7 +55,7 @@ public class CKYDecode {
      * @param labelSearched- expected RHS of the rule
      * @return
      */
-    private List<Rule> getUnaryRulesForWord(String labelSearched) {
+    protected List<Rule> getUnaryRulesForWord(String labelSearched) {
         if (!m_syntaxticEnteries.containsKey(labelSearched)) return new ArrayList<Rule>();
         Set<Rule> unaryRules = new HashSet<Rule>();
         for (Rule rule : m_syntaxticEnteries.get(labelSearched)) {
@@ -74,7 +74,7 @@ public class CKYDecode {
      * @param symbolesSize- number of non-terminal symbols in grammar
      * @return
      */
-    private CKYCell[][] initCKYTable(int inputSize, int symbolesSize) {
+    protected CKYCell[][] initCKYTable(int inputSize, int symbolesSize) {
         CKYCell[][] cells = new CKYCell[inputSize + 1][inputSize + 1];
         for (int i = 0; i < inputSize + 1; i++) {
             for (int j = 0; j < inputSize + 1; j++) {
@@ -90,7 +90,7 @@ public class CKYDecode {
      * @param input
      * @return
      */
-    private Tree ckyDecode(List<String> input) {
+    protected Tree ckyDecode(List<String> input) {
         List<String> nonTerminalSymbols = new ArrayList<String>(grammar.getNonTerminalSymbols());
         Map<String, Set<Rule>> lexicalEntries = grammar.getLexicalEntries(); //map of lexical word and all related rules
         CKYCell[][] ckyTable = initCKYTable(input.size(), nonTerminalSymbols.size());
@@ -103,12 +103,10 @@ public class CKYDecode {
             CKYCell cell = ckyTable[begin][end];
             String word = input.get(begin);
 
-            if (lexicalEntries.containsKey(word)) {
+            if (lexicalEntries.containsKey(word)) {//word is known in training set
                 lexRulesForWord.addAll(lexicalEntries.get(word));
             } else {
-                Rule ruleNN = new Rule("NN", word);
-                ruleNN.setMinusLogProb(0.0);
-                lexRulesForWord.add(ruleNN);
+                lexRulesForWord.addAll(setUnknownWordTag(word,ckyTable, i));
             }
             for (Rule rule : lexRulesForWord) {
                 cell.addScore(rule.getLHS().getSymbols().get(0), rule.getMinusLogProb());
@@ -147,25 +145,6 @@ public class CKYDecode {
                             }
                         }
                     }
-//                    for (Rule rule : m_setGrammarRules) {
-//
-//                        if (rule.getRHS().getSymbols().size() == 2) {
-//                            String labelA = rule.getLHS().getSymbols().get(0);
-//                            String labelB = rule.getRHS().getSymbols().get(0);
-//                            String labelC = rule.getRHS().getSymbols().get(1);
-//
-//                            //// check if B is in left side of scores and C in in right side of scores
-//                            if (cellLeft.getScore(labelB) != null && cellRight.getScore(labelC) != null) {
-//                                double prob = cellLeft.getScore(labelB) + cellRight.getScore(labelC) + rule.getMinusLogProb();
-//                                Double scoreA = cellHead.getScore(labelA);
-//                                if (scoreA == null || prob < scoreA) {
-//                                    cellHead.addScore(labelA, prob);
-//                                    cellHead.addTriplet(labelA, new Triplet(split, labelB, labelC));
-//                                }
-//
-//                            }
-//                        }
-//                    }
                 }
                 addUnary(cellHead);
             }
@@ -184,7 +163,15 @@ public class CKYDecode {
         }
     }
 
-    private static Map<String, Set<Rule>> getSyntaxticEnteries(Grammar grammar) {
+    protected Set<Rule> setUnknownWordTag(String word, CKYCell[][] ckyTable, int currentWordIdx){
+        Set<Rule> rulesNN=new HashSet<Rule>();
+        Rule ruleNN = new Rule("NN", word);
+        ruleNN.setMinusLogProb(0.0);
+        rulesNN.add(ruleNN);
+        return rulesNN;
+    }
+
+    protected static Map<String, Set<Rule>> getSyntaxticEnteries(Grammar grammar) {
         Map<String, Set<Rule>> syntaxticEnteries = new HashMap<String, Set<Rule>>();
         for (Rule rule : grammar.getSyntacticRules()) {
             List<String> rhsSymbols = rule.getRHS().getSymbols();
@@ -211,7 +198,7 @@ public class CKYDecode {
      * @param rootLabels- expected label of current sub-tree
      * @return
      */
-    private Node buildTree(CKYCell[][] ckyTable, List<String> input, int begin, int end, Set<String> rootLabels, Node parentNode) {
+    protected Node buildTree(CKYCell[][] ckyTable, List<String> input, int begin, int end, Set<String> rootLabels, Node parentNode) {
         String rootLabel = getBestRootLabel(ckyTable, begin, end, rootLabels);
 
         if (rootLabel == null) {
@@ -254,7 +241,7 @@ public class CKYDecode {
         return rootNode;
     }
 
-    private String getBestRootLabel(CKYCell[][] ckyTable, int begin, int end, Set<String> rootLabels) {
+    protected String getBestRootLabel(CKYCell[][] ckyTable, int begin, int end, Set<String> rootLabels) {
         CKYCell rootCell = ckyTable[begin][end];
         Set<String> possibleSymbols = rootCell.getPossibleSymbols();
         double minScore = Double.POSITIVE_INFINITY;
@@ -272,7 +259,7 @@ public class CKYDecode {
         return bestRootLabel;
     }
 
-    private void addUnary(CKYCell cell) {
+    protected void addUnary(CKYCell cell) {
         boolean added = Boolean.TRUE;
 
         Set<String> nonTerminalSymbols = null;
