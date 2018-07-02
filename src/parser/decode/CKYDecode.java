@@ -106,7 +106,7 @@ public class CKYDecode {
             if (lexicalEntries.containsKey(word)) {//word is known in training set
                 lexRulesForWord.addAll(lexicalEntries.get(word));
             } else {
-                lexRulesForWord.addAll(setUnknownWordTag(word,ckyTable, i));
+                lexRulesForWord.addAll(setUnknownWordTag(word, ckyTable, i));
             }
             for (Rule rule : lexRulesForWord) {
                 cell.addScore(rule.getLHS().getSymbols().get(0), rule.getMinusLogProb());
@@ -127,21 +127,22 @@ public class CKYDecode {
                     CKYCell cellRight = ckyTable[split][end];
 
                     for (String labelLeft : cellLeft.getPossibleSymbols()) {
-                        Set<Rule> rulesLeft = m_syntaxticEnteries.get(labelLeft);
+                        if (m_syntaxticEnteries.containsKey(labelLeft)) {
+                            Set<Rule> rulesLeft = m_syntaxticEnteries.get(labelLeft);
+                            for (Rule lRule : rulesLeft) {
+                                if (lRule.getRHS().getSymbols().size() == 2 && lRule.getRHS().getSymbols().get(0).equals(labelLeft)) {
+                                    String labelHead = lRule.getLHS().getSymbols().get(0);
+                                    String labelRight = lRule.getRHS().getSymbols().get(1); //right side of rule
 
-                        for (Rule lRule : rulesLeft) {
-                            if (lRule.getRHS().getSymbols().size() == 2 && lRule.getRHS().getSymbols().get(0).equals(labelLeft)) {
-                                String labelHead = lRule.getLHS().getSymbols().get(0);
-                                String labelRight = lRule.getRHS().getSymbols().get(1); //right side of rule
-
-                                if (cellRight.getPossibleSymbols().contains(labelRight)) {
-                                    double prob = cellLeft.getScore(labelLeft) + cellRight.getScore(labelRight) + lRule.getMinusLogProb();
-                                    if (!cellHead.getPossibleSymbols().contains(labelHead) || prob < cellHead.getScore(labelHead)) {
-                                        cellHead.addScore(labelHead, prob);
-                                        cellHead.addTriplet(labelHead, new Triplet(split, labelLeft, labelRight));
+                                    if (cellRight.getPossibleSymbols().contains(labelRight)) {
+                                        double prob = cellLeft.getScore(labelLeft) + cellRight.getScore(labelRight) + lRule.getMinusLogProb();
+                                        if (!cellHead.getPossibleSymbols().contains(labelHead) || prob < cellHead.getScore(labelHead)) {
+                                            cellHead.addScore(labelHead, prob);
+                                            cellHead.addTriplet(labelHead, new Triplet(split, labelLeft, labelRight));
+                                        }
                                     }
-                                }
 
+                                }
                             }
                         }
                     }
@@ -163,8 +164,8 @@ public class CKYDecode {
         }
     }
 
-    protected Set<Rule> setUnknownWordTag(String word, CKYCell[][] ckyTable, int currentWordIdx){
-        Set<Rule> rulesNN=new HashSet<Rule>();
+    protected Set<Rule> setUnknownWordTag(String word, CKYCell[][] ckyTable, int currentWordIdx) {
+        Set<Rule> rulesNN = new HashSet<Rule>();
         Rule ruleNN = new Rule("NN", word);
         ruleNN.setMinusLogProb(0.0);
         rulesNN.add(ruleNN);

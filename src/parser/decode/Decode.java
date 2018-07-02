@@ -58,7 +58,7 @@ public class Decode {
         Tree ckyTree = null;
         if (type == 1) {
             ckyTree = CKYDecode.getInstance(grammar).decode(input);
-        } else if (type == 2) { //include unknown words smoothing
+        } else if (type == 2 || type == 3) { //include unknown words smoothing
             ckyTree = CKYDecodeExtended.getInstance(grammar).decode(input);
         }
         if (ckyTree == null) {

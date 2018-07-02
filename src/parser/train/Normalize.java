@@ -230,12 +230,13 @@ public class Normalize {
         }
         //set new label
         if(!treeRoot.isRoot()){
-            if(mode==0){
+            if(mode==0 && !treeRoot.getParent().getLabel().equals("TOP")){
                 newRoot.setIdentifier(treeRoot.getIdentifier()+"^"+treeRoot.getParent().getIdentifier());
             }
-            if(mode==1){
+            if(mode==1 && !treeRoot.getParent().getLabel().equals("TOP")){
                 //mode==1
-                newRoot.setIdentifier(treeRoot.getIdentifier().split("^")[0]);
+                String[] newId=treeRoot.getIdentifier().split("\\^",-1);
+                newRoot.setIdentifier(newId[0]);
             }
         }
 
