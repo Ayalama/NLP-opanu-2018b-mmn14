@@ -20,7 +20,7 @@ public class Normalize {
      * @param tree
      * @return
      */
-    public static Tree normalize(Tree tree, int h) {
+    public static Tree normalizeToBinaryTree(Tree tree, int h) {
         //normalized non binary Nodes in the tree
         Node binaryTreeRoot = binarizeTreeNodes(tree.getRoot(), h);
         return new Tree(binaryTreeRoot);
@@ -149,21 +149,6 @@ public class Normalize {
         return;
     }
 
-//    public static Node binarizeTreeNodes2(Node root,int h) {
-//        if (root.isLeaf()) {
-//            return root.clone();
-//        }
-//
-//        Node newRoot = binarizeNode(root,h);
-//        List<Node> binaryDaughters = new ArrayList<Node>(2);
-//        for (Node child : newRoot.getDaughters()) {
-//            binaryDaughters.add(binarizeTreeNodes(child,h));
-//        }
-//        newRoot.removeAllDaughters();
-//        newRoot.addAllDaughters(binaryDaughters);
-//
-//        return newRoot;
-//    }
 
     /**
      * get original tree from a binarized tree
@@ -172,7 +157,7 @@ public class Normalize {
      * @param tree
      * @return
      */
-    public static Tree unnormalize(Tree tree) {
+    public static Tree unBinarizeTree(Tree tree) {
         //normalized non binary Nodes in the tree
         List<Node> denormchildrens = unBinarizeTreeNodes(tree.getRoot());
         Node newRoot = denormchildrens.get(0);
@@ -209,6 +194,54 @@ public class Normalize {
             unBinarizeNodes.add(child.clone());
         }
         return unBinarizeNodes;
+    }
 
+
+    public static Tree getParentAnnotationTree(Tree tree) {
+        Node parentAnnotatedRoot = getTreeNodesBottomUp(tree.getRoot());
+        return new Tree(parentAnnotatedRoot);
+    }
+
+    public static Tree removeParentAnnotationTree(Tree tree) {
+        Node removedParentAnnotationRoot = unAnnotateTree(tree.getRoot());
+        return new Tree(removedParentAnnotationRoot);
+    }
+
+    private static Node getTreeNodesBottomUp(Node treeRoot) {
+        return changeTreeLabel(treeRoot,0);
+    }
+
+
+    public static Node unAnnotateTree(Node annotatedTreeRoot) {
+        return changeTreeLabel(annotatedTreeRoot,1);
+    }
+
+    private static Node changeTreeLabel(Node treeRoot, int mode){
+        Node newRoot = treeRoot.clone();
+
+        if (treeRoot.isLeaf()) {
+            return newRoot;
+        }
+        List<Node> newDaughers = new ArrayList<Node>();
+        for (int i = 0; i < treeRoot.getDaughters().size(); i++) {
+            Node daughter = treeRoot.getDaughters().get(i);
+            Node newDaugher = changeTreeLabel(daughter,mode);
+            newDaughers.add(newDaugher);
+        }
+        //set new label
+        if(!treeRoot.isRoot()){
+            if(mode==0){
+                newRoot.setIdentifier(treeRoot.getIdentifier()+"^"+treeRoot.getParent().getIdentifier());
+            }
+            if(mode==1){
+                //mode==1
+                newRoot.setIdentifier(treeRoot.getIdentifier().split("^")[0]);
+            }
+        }
+
+        newRoot.removeAllDaughters();
+        newRoot.addAllDaughters(newDaughers);
+
+        return newRoot;
     }
 }
