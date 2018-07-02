@@ -30,22 +30,38 @@ public class Grammar {
     protected Map<String, CountMap<String>> m_biGramMap = new HashMap<String, CountMap<String>>();
     protected Map<String, String> m_maxBiGramMap = new HashMap<String, String>();
     protected Map<String, Double> m_maxBiGramMapLogprob = new HashMap<String, Double>();
+    protected Map<String, Double> m_minusLogProbForTag=new HashMap<String, Double>();
+    protected Set<String> m_setNNSymbols=new HashSet<String>();
 
-
-    double NNLogprob=Double.POSITIVE_INFINITY;
+//    double NNLogprob=Double.POSITIVE_INFINITY; //TODO- remove
 
 
     public Grammar() {
         super();
     }
 
-    public double getNNLogprob() {
-        return NNLogprob;
+    public Set<String> getM_setNNSymbols() {
+        return m_setNNSymbols;
     }
 
-    public void setNNLogprob(double NNLogprob) {
-        this.NNLogprob = NNLogprob;
+    public void setM_setNNSymbols(Set<String> m_setNNSymbols) {
+        this.m_setNNSymbols = m_setNNSymbols;
     }
+    public Map<String, Double> getM_minusLogProbForTag() {
+        return m_minusLogProbForTag;
+    }
+
+    public void setM_minusLogProbForTag(Map<String, Double> m_minusLogProbForTag) {
+        this.m_minusLogProbForTag = m_minusLogProbForTag;
+    }
+
+//    public double getNNLogprob() {
+//        return NNLogprob;
+//    }
+//
+//    public void setNNLogprob(double NNLogprob) {
+//        this.NNLogprob = NNLogprob;
+//    }
 
     public void setM_maxBiGramMapLogprob(Map<String, Double> m_maxBiGramMapLogprob) {
         this.m_maxBiGramMapLogprob = m_maxBiGramMapLogprob;

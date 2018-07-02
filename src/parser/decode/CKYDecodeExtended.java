@@ -29,15 +29,15 @@ public class CKYDecodeExtended extends CKYDecode {
 
     protected Set<Rule> setUnknownWordTag(String word, CKYCell[][] ckyTable, int currentWordIdx) {
         Map<String, String> biGramMap = grammar.getM_maxBiGramMap();
-        Map<String,Double> biGramLogPMap=grammar.getM_maxBiGramMapLogprob();
-        Set<Rule> rules = new HashSet<Rule>();
-        boolean NNflg=Boolean.FALSE;
+        Map<String, Double> biGramLogPMap = grammar.getM_maxBiGramMapLogprob();
 
-        Rule NNRule= new ArrayList<Rule>(super.setUnknownWordTag(word, ckyTable, currentWordIdx)).get(0);
-        NNRule.setMinusLogProb(grammar.getNNLogprob());
+        Set<Rule> rules = new HashSet<Rule>();
+        boolean NNflg = Boolean.FALSE;
+
+        Set<Rule> NNRules = getNNRules(word);
 
         if (currentWordIdx == 0) {
-            return super.setUnknownWordTag(word, ckyTable, currentWordIdx);
+            return NNRules;
         }
 
         CKYCell prevWordCell = ckyTable[currentWordIdx - 1][currentWordIdx];
@@ -45,25 +45,36 @@ public class CKYDecodeExtended extends CKYDecode {
 
         for (String prevSymbol : prevSymbols) {
             if (biGramMap.containsKey(prevSymbol) && prevWordCell.getTriplet(prevSymbol) == null) {
-                String candidateSymbols = biGramMap.get(prevSymbol); //most probable symbol where previous tag is prevSymbol
-                double logProb= biGramLogPMap.get(prevSymbol);
+                String candidateSymbol = biGramMap.get(prevSymbol); //most probable symbol where previous tag is prevSymbol
+                double logProb = biGramLogPMap.get(prevSymbol);
 
-                if (candidateSymbols.equals("NN")){
-                    NNflg=Boolean.TRUE;
-                    logProb=Math.min(logProb,grammar.getNNLogprob());
+                if (grammar.getM_setNNSymbols().contains(candidateSymbol)) {
+                    NNflg = Boolean.TRUE;
+                    logProb = Math.min(logProb, grammar.getM_minusLogProbForTag().get(candidateSymbol));
                 }
 
-                Rule smoothRule = new Rule(candidateSymbols, word);
+                Rule smoothRule = new Rule(candidateSymbol, word);
                 smoothRule.setMinusLogProb(logProb);
                 rules.add(smoothRule);
             }
         }
 
         if (!NNflg) {
-            rules.add(NNRule);
+            rules.addAll(NNRules);
         }
 
         return rules;
+    }
+
+    private Set<Rule> getNNRules(String word) {
+        Set<Rule> rulesNN = new HashSet<Rule>();
+        for (String nnSymbol : grammar.getM_setNNSymbols()) {
+            Rule ruleNN = new Rule(nnSymbol, word);
+            double minusLogProb = grammar.getM_maxBiGramMapLogprob().get(nnSymbol);
+            ruleNN.setMinusLogProb(minusLogProb);
+            rulesNN.add(ruleNN);
+        }
+        return rulesNN;
     }
 
 }

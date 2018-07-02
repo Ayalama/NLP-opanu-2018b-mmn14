@@ -172,6 +172,8 @@ public class CKYDecode {
         return rulesNN;
     }
 
+
+
     protected static Map<String, Set<Rule>> getSyntaxticEnteries(Grammar grammar) {
         Map<String, Set<Rule>> syntaxticEnteries = new HashMap<String, Set<Rule>>();
         for (Rule rule : grammar.getSyntacticRules()) {

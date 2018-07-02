@@ -77,18 +77,65 @@ public class Train {
         myGrammar.setM_maxBiGramMap(nonTerminalMaxBiGram);
         myGrammar.setM_maxBiGramMapLogprob(nonTerminalBiGramMaxLogprob);
 
-        //calc log prob to NN tag
-        int totalLexRulesInstances=0;
-        for(Rule rule: myGrammar.getLexicalRules()){
-            int count=myGrammar.getRuleCounts().get(rule);
-            totalLexRulesInstances=totalLexRulesInstances+count;
-        }
-        int NNcount=getNNLexicalCount(myGrammar);
-        myGrammar.setNNLogprob(-Math.log(NNcount)+Math.log(totalLexRulesInstances));
+        myGrammar.setM_minusLogProbForTag(getMinusLogProbForTag(myGrammar));
+        myGrammar.setM_setNNSymbols(getNNSymbols(myGrammar));
 
-        // pushing through- smoothing related part
+//        //calc log prob to NN tag
+//        int totalLexRulesInstances=0;
+//        for(Rule rule: myGrammar.getLexicalRules()){
+//            int count=myGrammar.getRuleCounts().get(rule);
+//            totalLexRulesInstances=totalLexRulesInstances+count;
+//        }
+//
+//        int NNcount=getNNLexicalCount(myGrammar);
+//        myGrammar.setNNLogprob(-Math.log(NNcount)+Math.log(totalLexRulesInstances));
+//
+//        // pushing through- smoothing related part
 
         return myGrammar;
+    }
+
+    /**
+     * map of symbol and their minuse log prob to lexical words
+     * @param grammar
+     * @return
+     */
+    private Map<String, Double> getMinusLogProbForTag(Grammar grammar){
+        CountMap<String> lexCountForSynbol=new CountMap<String>();
+        Map<String, Double> lexLogProb=new HashMap<String, Double>();
+
+        //get denominator
+        int totalLexRulesInstances=0;
+        for(Rule rule: grammar.getLexicalRules()){
+            int count=grammar.getRuleCounts().get(rule);
+            totalLexRulesInstances=totalLexRulesInstances+count;
+
+            String lhsSymbol = rule.getLHS().getSymbols().get(0);
+            lexCountForSynbol.add(lhsSymbol,count);
+        }
+
+        for(String symbol:lexCountForSynbol.keySet()){
+            double minusLogProb= -Math.log(lexCountForSynbol.get(symbol))+Math.log(totalLexRulesInstances);
+            lexLogProb.put(symbol,minusLogProb);
+        }
+        return lexLogProb;
+    }
+
+    /**
+     * get all posible symbols outputed as NN
+     * @param grammar
+     * @return
+     */
+    private Set<String> getNNSymbols(Grammar grammar){
+        Set<String> NNSymbols=new HashSet<String>();
+
+        for(Rule rule: grammar.getLexicalRules()){
+            String lhsSymbol = rule.getLHS().getSymbols().get(0);
+            if (lhsSymbol.equals("NN") || lhsSymbol.contains("NN^")){
+                NNSymbols.add(lhsSymbol);
+            }
+        }
+        return NNSymbols;
     }
 
     private int getNNLexicalCount(Grammar grammar) {
