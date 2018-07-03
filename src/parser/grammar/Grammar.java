@@ -26,61 +26,52 @@ public class Grammar {
     protected Map<String, Set<Rule>> m_lexLexicalEntries = new HashMap<String, Set<Rule>>();
 
 
-    //	pushing through- smoothing. each string is a nonTerminal symbols i. countMap key is nonTerminal symbol i+1 and count is the number of time the combination of nonTerminal i apeard in training set befor nonTerminal i+1.
+    //	pushing through- smoothing. each string is a nonTerminal symbols i. countMap key is nonTerminal symbol i+1 and count is the number of time the combination of nonTerminal i appear in training set before nonTerminal i+1.
     protected Map<String, CountMap<String>> m_biGramMap = new HashMap<String, CountMap<String>>();
     protected Map<String, String> m_maxBiGramMap = new HashMap<String, String>();
     protected Map<String, Double> m_maxBiGramMapLogprob = new HashMap<String, Double>();
     protected Map<String, Double> m_minusLogProbForTag=new HashMap<String, Double>();
     protected Set<String> m_setNNSymbols=new HashSet<String>();
 
-//    double NNLogprob=Double.POSITIVE_INFINITY; //TODO- remove
 
 
     public Grammar() {
         super();
     }
 
-    public Set<String> getM_setNNSymbols() {
+    public Set<String> getNNSymbolsSet() {
         return m_setNNSymbols;
     }
 
-    public void setM_setNNSymbols(Set<String> m_setNNSymbols) {
+    public void setNNSymbolsSet(Set<String> m_setNNSymbols) {
         this.m_setNNSymbols = m_setNNSymbols;
     }
-    public Map<String, Double> getM_minusLogProbForTag() {
+    public Map<String, Double> getMinusLogProbForTag() {
         return m_minusLogProbForTag;
     }
 
-    public void setM_minusLogProbForTag(Map<String, Double> m_minusLogProbForTag) {
+    public void setMinusLogProbForTag(Map<String, Double> m_minusLogProbForTag) {
         this.m_minusLogProbForTag = m_minusLogProbForTag;
     }
 
-//    public double getNNLogprob() {
-//        return NNLogprob;
-//    }
-//
-//    public void setNNLogprob(double NNLogprob) {
-//        this.NNLogprob = NNLogprob;
-//    }
-
-    public void setM_maxBiGramMapLogprob(Map<String, Double> m_maxBiGramMapLogprob) {
+    public void setMaxBiGramMapLogprob(Map<String, Double> m_maxBiGramMapLogprob) {
         this.m_maxBiGramMapLogprob = m_maxBiGramMapLogprob;
     }
-    public Map<String, Double> getM_maxBiGramMapLogprob() {
+    public Map<String, Double> getMaxBiGramMapLogprob() {
         return m_maxBiGramMapLogprob;
     }
 
-    public void setM_maxBiGramMap(Map<String, String> m_maxBiGramMap) {
+    public void setMaxBiGramMap(Map<String, String> m_maxBiGramMap) {
         this.m_maxBiGramMap = m_maxBiGramMap;
     }
-    public Map<String, String> getM_maxBiGramMap() {
+    public Map<String, String> getMaxBiGramMap() {
         return m_maxBiGramMap;
     }
 
     public Map<String, Set<Rule>> getLexicalEntries() {
         return m_lexLexicalEntries;
     }
-    public Map<String, CountMap<String>> getM_biGramMap() {
+    public Map<String, CountMap<String>> getBiGramMap() {
         return m_biGramMap;
     }
 

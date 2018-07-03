@@ -57,7 +57,7 @@ public class Train {
             List<Rule> theRules = getRules(myTree); //get tree rules. rules are in the order of sentence words from left to right
             myGrammar.addAll(theRules);
 
-            nonTerminalBiGram = getBiGramForTree(theRules, nonTerminalBiGram);
+            nonTerminalBiGram = getBiGramForTree(theRules, nonTerminalBiGram); //update -logprob of pairs tag(i), tag(i+1)
         }
         updateRulesLogProb(myGrammar);
 
@@ -74,29 +74,19 @@ public class Train {
             Double logprob=-Math.log(nonTerminalBiGram.get(nonTerminalSymbol).get(maxRightTerm))+Math.log(totalCountForSynbol);
             nonTerminalBiGramMaxLogprob.put(nonTerminalSymbol,logprob);
         }
-        myGrammar.setM_maxBiGramMap(nonTerminalMaxBiGram);
-        myGrammar.setM_maxBiGramMapLogprob(nonTerminalBiGramMaxLogprob);
+        myGrammar.setMaxBiGramMap(nonTerminalMaxBiGram);
+        myGrammar.setMaxBiGramMapLogprob(nonTerminalBiGramMaxLogprob);
 
-        myGrammar.setM_minusLogProbForTag(getMinusLogProbForTag(myGrammar));
-        myGrammar.setM_setNNSymbols(getNNSymbols(myGrammar));
-
-//        //calc log prob to NN tag
-//        int totalLexRulesInstances=0;
-//        for(Rule rule: myGrammar.getLexicalRules()){
-//            int count=myGrammar.getRuleCounts().get(rule);
-//            totalLexRulesInstances=totalLexRulesInstances+count;
-//        }
-//
-//        int NNcount=getNNLexicalCount(myGrammar);
-//        myGrammar.setNNLogprob(-Math.log(NNcount)+Math.log(totalLexRulesInstances));
-//
-//        // pushing through- smoothing related part
+        myGrammar.setMinusLogProbForTag(getMinusLogProbForTag(myGrammar));
+        myGrammar.setNNSymbolsSet(getNNSymbols(myGrammar));
+        // pushing through- smoothing related part- END
 
         return myGrammar;
     }
 
     /**
-     * map of symbol and their minuse log prob to lexical words
+     * map of symbol and their minus log prob to lexical words
+     * for each symbol, this os the probabily for this tag to showup as a lhs in a lexical rules, with -logprob transformation
      * @param grammar
      * @return
      */
@@ -137,18 +127,6 @@ public class Train {
         }
         return NNSymbols;
     }
-
-    private int getNNLexicalCount(Grammar grammar) {
-        Set<Rule> NNRules = new HashSet<Rule>();
-        int NNCount=0;
-        for (Rule rule : grammar.getLexicalRules()) {
-            String lhsSymbol = rule.getLHS().getSymbols().get(0);
-            if(lhsSymbol.equals("NN")){
-                NNCount=NNCount+grammar.getRuleCounts().get(rule);
-            }
-        }
-        return NNCount;
-    }
     /**
      * Map<String,CountMap<String>>- contains tag i as a key and tag i+1 as a key to countmap to hold bi-gram counts for unknown words. used for smoothing
      *
@@ -187,8 +165,8 @@ public class Train {
 
 
     /**
-     * get the grammer as input, adn review all it's rules
-     * each rules is updates with logprob in accordance to grammer rule counts and the count of instances of the rule precursor
+     * review all input grammar rules
+     * each rule is updates with -logprob in accordance to grammar rule counts and the count of instances of the rule lhs symbol
      * update the log probabilities inline for each rule
      *
      * @param myGrammar
@@ -206,6 +184,11 @@ public class Train {
 
     }
 
+    /**
+     * for each non terminal symbol, count how many times it appear as LHS of a rule
+     * @param myRules
+     * @return
+     */
     private Map<String, Integer> getNonTerminalSymbRulesCount(CountMap myRules) {
         Map<String, Integer> nonTerminalSymbRulesCount = new HashMap<String, Integer>();
         for (Rule r : (Set<Rule>) myRules.keySet()) {

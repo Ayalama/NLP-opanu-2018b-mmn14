@@ -44,12 +44,15 @@ public class Parse {
         Treebank myGoldTreebank = TreebankReader.getInstance().read(true, args[0]);
         Treebank myTrainTreebank = TreebankReader.getInstance().read(true, args[1]);
 
+        //provide arg h value at index 3 to configure different markovization level than default (-1)
         int h = -1;
         if (args.length > 3) {
             h = Integer.parseInt(args[3]);
         }
 
-        int decodeTyp = 1; //1 for ckyDecode, 2 for ckyDecode with smoothing, 3 for ckyDecode with parent annotation and smoothing
+        //provide arg decodeTyp value at index 4 to configure different decoding type than default (1).
+        //1 for ckyDecode (Q4), 2 for ckyDecode with smoothing (Q5), 3 for ckyDecode with parent annotation and smoothing (Q5)
+        int decodeTyp = 1;
         if (args.length > 4) {
             decodeTyp = Integer.parseInt(args[4]);
         }
@@ -60,10 +63,11 @@ public class Parse {
         for (int i = 0; i < myTrainTreebank.size(); i++) {
             Tree myTree = myTrainTreebank.getAnalyses().get(i);//get tree in index i from treebank
 
-            //decoding with parent annotation
+            //for decoding with parent annotation, prepare annotated trees before training
             if (decodeTyp == 3) {
                 myTree = Normalize.getParentAnnotationTree(myTree);
             }
+            //Binarization, prior to training
             Tree myBinaryTree = Normalize.normalizeToBinaryTree(myTree, h);
             myBinaryTrainTreebank.add(myBinaryTree);
         }
@@ -78,23 +82,22 @@ public class Parse {
         for (int i = 0; i < myGoldTreebank.size(); i++) {
             System.out.print("decode: parsing sentence # " + i);
             List<String> mySentence = myGoldTreebank.getAnalyses().get(i).getYield();
-            System.out.print(", orig sentence:" + mySentence);
+            System.out.println(", orig sentence:" + mySentence);
             Tree myParseTree = Decode.getInstance(myGrammar).decode(mySentence, decodeTyp);
-            System.out.println(", parsed sentence:" + myParseTree.getYield());
             myParseTrees.add(myParseTree);
         }
 
 
         // 5. de-transform ParseTree trees to non binaries form to be comparable with gold set on evaluation phase
-//        Tree myBinTree=myBinaryTrainTreebank.getAnalyses().get(0);
-//        Tree myBinTreeUnnorm=Normalize.de-normalizeToBinaryTree(myBinTree);
         System.out.println("De-transform best parsed trees...");
         List<Tree> myParseTreesDetransdormed = new ArrayList<Tree>();
         for (int i = 0; i < myParseTrees.size(); i++) {
             Tree myTree = myParseTrees.get(i);//get tree in index i from treebank
+
+            //remove binarization of parsed tree
             Tree myParseTreeUnnorm = Normalize.unBinarizeTree(myTree);
 
-            //decoding with parent annotation- remove added annotation before comparing with gold
+            //for decoding with parent annotation- remove annotations from parsed trees before comparing with gold
             if (decodeTyp == 3) {
                 myParseTreeUnnorm = Normalize.removeParentAnnotationTree(myParseTreeUnnorm);
             }

@@ -8,6 +8,9 @@ import java.util.List;
 
 /**
  * Created by aymann on 18/05/2018.
+ * implementation of trees annotation operations:
+ * Binarization and de-binarization
+ * Parent annotation and removal of parent annotation
  */
 public class Normalize {
 
@@ -15,7 +18,6 @@ public class Normalize {
      * receive an original tree as input and preformes:
      * normalized Long rules (eg. A->BCD) to binary rules
      * returned tree is a Binary tree
-     * TODO- add input parameter indicating the number of sisters encoded in the memory of added nodes (currently all sisters are encoded)
      *
      * @param tree
      * @return
@@ -26,7 +28,14 @@ public class Normalize {
         return new Tree(binaryTreeRoot);
     }
 
-
+    /**
+     * Main metod for binarization
+     * Recursive manner
+     *
+     * @param root
+     * @param h
+     * @return
+     */
     public static Node binarizeTreeNodes(Node root, int h) {
         if (root.isLeaf()) {
             return root.clone();
@@ -46,7 +55,7 @@ public class Normalize {
 
     /**
      * binarize a single node in the tree in case it is with more than 2 daughters
-     *
+     *assign labels to new node according to h value
      * @param treeRoot
      * @return
      */
@@ -115,18 +124,6 @@ public class Normalize {
     }
 
 
-    public static void collapseTreeNodes(Node root) {
-        List<Node> daughters = root.getDaughters();
-
-        if (daughters == null) {
-            return;
-        }
-        collapseRootNode(root);
-        for (Node daughter : root.getDaughters()) {
-            collapseTreeNodes(daughter); //recursive
-        }
-    }
-
     public static void collapseRootNode(Node treeRoot) {
 
         if (treeRoot.getDaughters().size() == 1) {
@@ -152,7 +149,6 @@ public class Normalize {
 
     /**
      * get original tree from a binarized tree
-     * TODO- check what if returned list contains the actual root?!
      *
      * @param tree
      * @return
@@ -196,26 +192,30 @@ public class Normalize {
         return unBinarizeNodes;
     }
 
-
+    /**
+     * return a tree with parent annotation
+     * each Node label A, with parent B, is transformed to Node with identifier A^B
+     * @param tree
+     * @return
+     */
     public static Tree getParentAnnotationTree(Tree tree) {
-        Node parentAnnotatedRoot = getTreeNodesBottomUp(tree.getRoot());
+        Node parentAnnotatedRoot = changeTreeLabel(tree.getRoot(),0);
         return new Tree(parentAnnotatedRoot);
     }
 
     public static Tree removeParentAnnotationTree(Tree tree) {
-        Node removedParentAnnotationRoot = unAnnotateTree(tree.getRoot());
+        Node removedParentAnnotationRoot = changeTreeLabel(tree.getRoot(),1);
         return new Tree(removedParentAnnotationRoot);
     }
 
-    private static Node getTreeNodesBottomUp(Node treeRoot) {
-        return changeTreeLabel(treeRoot,0);
-    }
-
-
-    public static Node unAnnotateTree(Node annotatedTreeRoot) {
-        return changeTreeLabel(annotatedTreeRoot,1);
-    }
-
+    /**
+     * recursively change all nodes labels
+     * mode 0 for parent annotation
+     * mode 1 for parent annotation removal
+     * @param treeRoot
+     * @param mode
+     * @return
+     */
     private static Node changeTreeLabel(Node treeRoot, int mode){
         Node newRoot = treeRoot.clone();
 

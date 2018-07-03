@@ -3,7 +3,6 @@ package parser.decode;
 import parser.grammar.Grammar;
 import parser.grammar.Rule;
 
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -19,17 +18,29 @@ public class CKYDecodeExtended extends CKYDecode {
     public static CKYDecodeExtended getInstance(Grammar g) {
         if (m_singDecoder == null) {
             m_singDecoder = new CKYDecodeExtended();
-            m_setGrammarRules = g.getSyntacticRules();
-            m_mapLexicalRules = g.getLexicalEntries();
-            m_syntaxticEnteries = getSyntaxticEnteries(g);
+            m_syntacticEnteries = getSyntacticEnteries(g);
             grammar = g;
         }
         return m_singDecoder;
     }
 
+    /**
+     * implementation of unknown words tagging, in decoding
+     * used structures;
+     * biGramMap- holds the list of tag(i), tag(i+1) where tag(i+1) is the most probable to show after tag(i)
+     * biGramLogPMap - holds the list of tag(i) and the -logprog value for tag(i+1) from biGramMap
+     *
+     * smoothing is looping over all possible symbols from previous word in sentence, as reflected in CKY table
+     * pull the most probable tag to follow each and update -logprob of their bigram in CKY table, for current word cell
+     *
+     * @param word
+     * @param ckyTable
+     * @param currentWordIdx
+     * @return
+     */
     protected Set<Rule> setUnknownWordTag(String word, CKYCell[][] ckyTable, int currentWordIdx) {
-        Map<String, String> biGramMap = grammar.getM_maxBiGramMap();
-        Map<String, Double> biGramLogPMap = grammar.getM_maxBiGramMapLogprob();
+        Map<String, String> biGramMap = grammar.getMaxBiGramMap();
+        Map<String, Double> biGramLogPMap = grammar.getMaxBiGramMapLogprob();
 
         Set<Rule> rules = new HashSet<Rule>();
         boolean NNflg = Boolean.FALSE;
@@ -43,14 +54,15 @@ public class CKYDecodeExtended extends CKYDecode {
         CKYCell prevWordCell = ckyTable[currentWordIdx - 1][currentWordIdx];
         Set<String> prevSymbols = prevWordCell.getPossibleSymbols();
 
+        //loop over all possible symbols from previous word in sentence, as showd in CKY table
         for (String prevSymbol : prevSymbols) {
             if (biGramMap.containsKey(prevSymbol) && prevWordCell.getTriplet(prevSymbol) == null) {
                 String candidateSymbol = biGramMap.get(prevSymbol); //most probable symbol where previous tag is prevSymbol
                 double logProb = biGramLogPMap.get(prevSymbol);
 
-                if (grammar.getM_setNNSymbols().contains(candidateSymbol)) {
+                if (grammar.getNNSymbolsSet().contains(candidateSymbol)) {
                     NNflg = Boolean.TRUE;
-                    logProb = Math.min(logProb, grammar.getM_minusLogProbForTag().get(candidateSymbol));
+                    logProb = Math.min(logProb, grammar.getMinusLogProbForTag().get(candidateSymbol));
                 }
 
                 Rule smoothRule = new Rule(candidateSymbol, word);
@@ -68,9 +80,9 @@ public class CKYDecodeExtended extends CKYDecode {
 
     private Set<Rule> getNNRules(String word) {
         Set<Rule> rulesNN = new HashSet<Rule>();
-        for (String nnSymbol : grammar.getM_setNNSymbols()) {
+        for (String nnSymbol : grammar.getNNSymbolsSet()) {
             Rule ruleNN = new Rule(nnSymbol, word);
-            double minusLogProb = grammar.getM_maxBiGramMapLogprob().get(nnSymbol);
+            double minusLogProb = grammar.getMaxBiGramMapLogprob().get(nnSymbol);
             ruleNN.setMinusLogProb(minusLogProb);
             rulesNN.add(ruleNN);
         }

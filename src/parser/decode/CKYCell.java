@@ -8,6 +8,11 @@ import java.util.Set;
 
 /**
  * Created by aymann on 22/05/2018.
+ * Represent a single Cell in CKY table
+ * Hold 2 structures:
+ * m_possibleSymbolsScores for all non terminal symbols that are possible to continue with from this cell, together with the equivalent rule minus-logprob value
+ * m_possibleRulesTriplets represents the backpointers of each symbol in the possible symbol map- each triplet is <split value, rhs(0), rhs(1)>
+ *
  */
 public class CKYCell {
     private Map<String, Double> m_possibleSymbolsScores;

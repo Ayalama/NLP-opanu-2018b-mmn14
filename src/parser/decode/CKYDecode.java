@@ -10,12 +10,12 @@ import java.util.*;
 
 /**
  * Created by aymann on 05/06/2018.
+ * Implementation of CKY decoder, given grammer object
+ * m_syntacticEnteries- index of grammer rules according to their lhs symbols. key in the map is symbol in grammer, where the value is a set of all rules this sybol apears as one of the rhs symbols.
  */
 public class CKYDecode {
 
-    public static Set<Rule> m_setGrammarRules = null;
-    public static Map<String, Set<Rule>> m_mapLexicalRules = null;
-    public static Map<String, Set<Rule>> m_syntaxticEnteries = null;
+    public static Map<String, Set<Rule>> m_syntacticEnteries = null;
     public static Grammar grammar;
 
     /**
@@ -27,9 +27,7 @@ public class CKYDecode {
     public static CKYDecode getInstance(Grammar g) {
         if (m_singDecoder == null) {
             m_singDecoder = new CKYDecode();
-            m_setGrammarRules = g.getSyntacticRules();
-            m_mapLexicalRules = g.getLexicalEntries();
-            m_syntaxticEnteries = getSyntaxticEnteries(g);
+            m_syntacticEnteries = getSyntacticEnteries(g);
             grammar = g;
         }
         return m_singDecoder;
@@ -56,9 +54,9 @@ public class CKYDecode {
      * @return
      */
     protected List<Rule> getUnaryRulesForWord(String labelSearched) {
-        if (!m_syntaxticEnteries.containsKey(labelSearched)) return new ArrayList<Rule>();
+        if (!m_syntacticEnteries.containsKey(labelSearched)) return new ArrayList<Rule>();
         Set<Rule> unaryRules = new HashSet<Rule>();
-        for (Rule rule : m_syntaxticEnteries.get(labelSearched)) {
+        for (Rule rule : m_syntacticEnteries.get(labelSearched)) {
             String rhsSymbol = rule.getRHS().getSymbols().get(0);
             if (rule.getRHS().getSymbols().size() == 1) {
                 unaryRules.add(rule);
@@ -85,7 +83,7 @@ public class CKYDecode {
     }
 
     /**
-     * returne the base parsed tree, based on trained grammar according to
+     * returne the best parsed tree, based on trained grammar according to CKY algorithm
      *
      * @param input
      * @return
@@ -126,15 +124,16 @@ public class CKYDecode {
                     CKYCell cellLeft = ckyTable[begin][split];
                     CKYCell cellRight = ckyTable[split][end];
 
+                    //loop to get all rules (A->leftlabel rightlebal) where leftlabel and rightlebal are possible symbols in leftCell and rightCell in accordance
                     for (String labelLeft : cellLeft.getPossibleSymbols()) {
-                        if (m_syntaxticEnteries.containsKey(labelLeft)) {
-                            Set<Rule> rulesLeft = m_syntaxticEnteries.get(labelLeft);
+                        if (m_syntacticEnteries.containsKey(labelLeft)) {
+                            Set<Rule> rulesLeft = m_syntacticEnteries.get(labelLeft);
                             for (Rule lRule : rulesLeft) {
                                 if (lRule.getRHS().getSymbols().size() == 2 && lRule.getRHS().getSymbols().get(0).equals(labelLeft)) {
                                     String labelHead = lRule.getLHS().getSymbols().get(0);
                                     String labelRight = lRule.getRHS().getSymbols().get(1); //right side of rule
 
-                                    if (cellRight.getPossibleSymbols().contains(labelRight)) {
+                                    if (cellRight.getPossibleSymbols().contains(labelRight)) {//possible symbol A is found for cellHead
                                         double prob = cellLeft.getScore(labelLeft) + cellRight.getScore(labelRight) + lRule.getMinusLogProb();
                                         if (!cellHead.getPossibleSymbols().contains(labelHead) || prob < cellHead.getScore(labelHead)) {
                                             cellHead.addScore(labelHead, prob);
@@ -151,10 +150,9 @@ public class CKYDecode {
             }
         }
 
+        //Get the best tree with respect to minus Logprob
         Node topNode = new Node("TOP");
         Node parsedTreeRoot = buildTree(ckyTable, input, 0, input.size(), grammar.getStartSymbols(), topNode);
-
-
         if (parsedTreeRoot != null) {
             parsedTreeRoot.setRoot(Boolean.TRUE);
             topNode.addDaughter(parsedTreeRoot);
@@ -164,6 +162,14 @@ public class CKYDecode {
         }
     }
 
+    /**
+     * tag unknown words with "NN", with logprob of 0.
+     * this is the basic solution as describe in Q4
+     * @param word
+     * @param ckyTable
+     * @param currentWordIdx
+     * @return
+     */
     protected Set<Rule> setUnknownWordTag(String word, CKYCell[][] ckyTable, int currentWordIdx) {
         Set<Rule> rulesNN = new HashSet<Rule>();
         Rule ruleNN = new Rule("NN", word);
@@ -173,26 +179,30 @@ public class CKYDecode {
     }
 
 
-
-    protected static Map<String, Set<Rule>> getSyntaxticEnteries(Grammar grammar) {
-        Map<String, Set<Rule>> syntaxticEnteries = new HashMap<String, Set<Rule>>();
+    /**
+     * return a map of syntactic symbols with a set of rule they appear as one of their rhs symbols
+     * @param grammar
+     * @return
+     */
+    protected static Map<String, Set<Rule>> getSyntacticEnteries(Grammar grammar) {
+        Map<String, Set<Rule>> syntacticEnteries = new HashMap<String, Set<Rule>>();
         for (Rule rule : grammar.getSyntacticRules()) {
             List<String> rhsSymbols = rule.getRHS().getSymbols();
             for (String symbol : rhsSymbols) {
-                if (syntaxticEnteries.containsKey(symbol)) {
-                    syntaxticEnteries.get(symbol).add(rule);
+                if (syntacticEnteries.containsKey(symbol)) {
+                    syntacticEnteries.get(symbol).add(rule);
                 } else {
                     Set<Rule> symbolEntries = new HashSet<Rule>();
                     symbolEntries.add(rule);
-                    syntaxticEnteries.put(symbol, symbolEntries);
+                    syntacticEnteries.put(symbol, symbolEntries);
                 }
             }
         }
-        return syntaxticEnteries;
+        return syntacticEnteries;
     }
 
     /**
-     * get the CKY chart and build the tree that yield minimun minus log prob and starts with S
+     * get the CKY chart and build the tree that yield minimun minus log prob. possible symbole to start with is any symbol listed as starting symbol in the grammar
      *
      * @param ckyTable-   array of left side index,s right ide index and chart score for each symbol in the grammar together with Triplet for each symbol in the grammar mentioning the split index, left child and right child
      * @param input-      input sentence
@@ -244,6 +254,14 @@ public class CKYDecode {
         return rootNode;
     }
 
+    /**
+     * locally select the best next tag to go with in the tree, by selecting the tag probiding th local min of minus logproob
+     * @param ckyTable
+     * @param begin
+     * @param end
+     * @param rootLabels
+     * @return
+     */
     protected String getBestRootLabel(CKYCell[][] ckyTable, int begin, int end, Set<String> rootLabels) {
         CKYCell rootCell = ckyTable[begin][end];
         Set<String> possibleSymbols = rootCell.getPossibleSymbols();
@@ -262,6 +280,10 @@ public class CKYDecode {
         return bestRootLabel;
     }
 
+    /**
+     * having the input of CKY cell, with all posible binary rules, find inary rules, with respect to this symbols
+     * @param cell
+     */
     protected void addUnary(CKYCell cell) {
         boolean added = Boolean.TRUE;
 
